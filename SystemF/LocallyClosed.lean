@@ -182,29 +182,34 @@ theorem lcTy_implies_lcAtTy0 {T : Ty} (h : LcTy T) : LcAtTy 0 T := by
     apply lcAtTy_of_open
     exact ih X hX
 
-theorem lcAtTy0_implies_lcTy {k} {T : Ty} (h : LcAtTy k T) (hk : k = 0) : LcTy T := by
-  induction h with subst hk
+/-
+  If `T` is locally closed at index 0, then `T` is locally closed.
+-/
+theorem lcAtTy0_implies_lcTy {T : Ty} (h : LcAtTy 0 T) : LcTy T := by
+  cases h with
   | bvar i k _ => contradiction
   | fvar X k => constructor
-  | arr T₁ T₂ k _ _ ih₁ ih₂ =>
-    specialize ih₁ rfl
-    specialize ih₂ rfl
-    constructor <;> assumption
-  | all T k h _ =>
+  | arr T₁ T₂ k h₁ h₂ =>
+  constructor
+  · exact lcAtTy0_implies_lcTy h₁
+  · exact lcAtTy0_implies_lcTy h₂
+  | all T k h =>
     apply LcTy.all ∅
     intro X hX
-    have hO := lcAtTy_open_inv (X := X) h
-    apply lcAtTy0_implies_lcTy hO rfl
-termination_by sizeOf T
+    have := lcAtTy_open_inv (X := X) h
+    exact lcAtTy0_implies_lcTy this
+termination_by T.size
 decreasing_by
-  -- TODO: termination
-  sorry
+  all_goals (simp_all; dsimp [Ty.size]; omega)
 
+/-
+  Locally closed types are exactly those that are locally closed at index 0.
+-/
 theorem lcTy_iff_lcAtTy0 {T : Ty} : LcTy T ↔ LcAtTy 0 T := by
   constructor
   · apply lcTy_implies_lcAtTy0
   · intro h
-    apply lcAtTy0_implies_lcTy h rfl
+    apply lcAtTy0_implies_lcTy h
 
 /-
   If `T` is locally closed, then opening `T` does nothing.

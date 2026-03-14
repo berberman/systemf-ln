@@ -26,6 +26,11 @@ inductive Tm where
   | tLam (t : Tm)
 deriving Repr, DecidableEq
 
+def Ty.size : Ty → ℕ
+  | .bvar _ => 1
+  | .fvar _ => 1
+  | .arr T₁ T₂ => T₁.size + T₂.size + 1
+  | .all T => T.size + 1
 
 def Ty.fv : Ty → Finset Name
   | .fvar x => {x}

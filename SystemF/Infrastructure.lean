@@ -193,7 +193,7 @@ lemma openTmTy0_tApp {U : Ty} {t : Tm} {T : Ty} :
 class Subst (α : Type) (β : Type) where
   subst : Name → α → β → β
 
-notation T "[" X " ↦ " U "]" => Subst.subst X U T
+scoped notation T "[" X " ↦ " U "]" => Subst.subst X U T
 
 
 /-
@@ -377,5 +377,22 @@ theorem openTm_substTmTy_comm_fresh {t u : Tm} {X : Name} {U : Ty} {k : ℕ} (h 
   rw [openTm_substTmTy_comm]
   rw [substTmTy_fresh h]
 
+@[simp]
+lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
+    (T⟪k, $T X⟫).size = T.size := by
+  induction T generalizing k with
+  | bvar idx =>
+    simp only [openTy_bvar, beq_iff_eq]
+    dsimp [Ty.size]
+    split <;> rfl
+  | fvar name => dsimp [Open.open, openTy, Ty.size]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp only [openTy_arr]
+    dsimp [Ty.size]
+    rw [T₁_ih, T₂_ih]
+  | all T ih =>
+    simp only [openTy_all]
+    dsimp [Ty.size]
+    rw [ih]
 
 end SystemF
