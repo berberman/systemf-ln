@@ -113,11 +113,11 @@ lemma openTm0_tLam {u : Tm} {t : Tm} :
 
 @[simp]
 lemma openTm_tApp {k : ℕ} {u : Tm} {t : Tm} {T : Ty} :
-  (t ⦃T⦄)⟪k, u⟫ = (t⟪k, u⟫ ⦃T⦄) := rfl
+  (t ⦃T⦄)⟪k, u⟫ = (t⟪k, u⟫⦃T⦄) := rfl
 
 @[simp]
 lemma openTm0_tApp {u : Tm} {t : Tm} {T : Ty} :
-  (t ⦃T⦄)⟪u⟫ = (t⟪u⟫ ⦃T⦄) := rfl
+  (t ⦃T⦄)⟪u⟫ = (t⟪u⟫⦃T⦄) := rfl
 
 /-
   Open `t` with `U` at index `k`.
@@ -262,6 +262,42 @@ lemma substTmTy_tLam {X : Name} {U : Ty} {t : Tm} :
 lemma substTmTy_tApp {X : Name} {U : Ty} {t : Tm} {T : Ty} :
   (Tm.tApp t T)[X ↦ U] = Tm.tApp (t[X ↦ U]) (T[X ↦ U]) := rfl
 
+def substTm (X : Name) (u t : Tm) : Tm :=
+  match t with
+  | .bvar idx => .bvar idx
+  | .fvar name => if name == X then u else .fvar name
+  | .app t₁ t₂ => .app (substTm X u t₁) (substTm X u t₂)
+  | .lam T t => .lam T (substTm X u t)
+  | .tLam t => .tLam (substTm X u t)
+  | .tApp t T => .tApp (substTm X u t) T
+
+@[simp]
+instance : Subst Tm Tm where
+  subst := substTm
+
+@[simp]
+lemma substTm_bvar {X : Name} {u : Tm} {idx : ℕ} :
+  (Tm.bvar idx)[X ↦ u] = Tm.bvar idx := rfl
+
+@[simp]
+lemma substTm_fvar {X : Name} {u : Tm} {name : Name} :
+  (Tm.fvar name)[X ↦ u] = if name == X then u else Tm.fvar name := rfl
+
+@[simp]
+lemma substTm_app {X : Name} {u : Tm} {t₁ t₂ : Tm} :
+  (Tm.app t₁ t₂)[X ↦ u] = Tm.app (t₁[X ↦ u]) (t₂[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_lam {X : Name} {u : Tm} {T : Ty} {t : Tm} :
+  (Tm.lam T t)[X ↦ u] = Tm.lam T (t[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_tLam {X : Name} {u : Tm} {t : Tm} :
+  (Tm.tLam t)[X ↦ u] = Tm.tLam (t[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_tApp {X : Name} {u : Tm} {t : Tm} {T : Ty} :
+  (Tm.tApp t T)[X ↦ u] = Tm.tApp (t[X ↦ u]) T := rfl
 
 /-
   Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
