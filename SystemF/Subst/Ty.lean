@@ -26,6 +26,10 @@ lemma openTy0_bvar {U : Ty} {x : ℕ} :
   (#T x)⟪U⟫ = if x == 0 then U else #T x := rfl
 
 @[simp]
+lemma openTy_fvar {k : ℕ} {U : Ty} {X : Name} :
+  ($T X)⟪k, U⟫ = $T X := rfl
+
+@[simp]
 lemma openTy0_fvar {U : Ty} {X : Name} :
   ($T X)⟪U⟫ = $T X := rfl
 
