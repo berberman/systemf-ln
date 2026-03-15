@@ -1,3 +1,5 @@
+import SystemF.Lc.Tm
+import SystemF.Lc.TyTm
 import SystemF.Typing
 
 namespace SystemF

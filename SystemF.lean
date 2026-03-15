@@ -1,5 +1,10 @@
 import SystemF.Syntax
-import SystemF.Infrastructure
-import SystemF.LocallyClosed
+import SystemF.Subst.Ty
+import SystemF.Subst.TyTm
+import SystemF.Subst.Tm
+import SystemF.Lc.Ty
+import SystemF.Lc.Tm
+import SystemF.Lc.TyTm
+import SystemF.Context
 import SystemF.Typing
-import SystemF.Metatheory
+import SystemF.Meta

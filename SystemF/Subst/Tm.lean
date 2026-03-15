@@ -1,0 +1,140 @@
+import SystemF.Subst.Ty
+
+namespace SystemF
+
+/-
+  Open `t` with `u` at index `k`.
+-/
+def openTm (k : ℕ) (u t : Tm) : Tm :=
+  match t with
+  | .bvar x => if x == k then u else .bvar x
+  | .tLam t => .tLam (openTm k u t)
+  | .lam ty t => .lam ty (openTm (k + 1) u t)
+  | .app t₁ t₂ => .app (openTm k u t₁) (openTm k u t₂)
+  | .tApp t T => .tApp (openTm k u t) T
+  | .fvar x => .fvar x
+
+@[simp]
+instance : Open Tm Tm where
+  «open» := openTm
+
+@[simp]
+lemma openTm_bvar {k : ℕ} {u : Tm} {x : ℕ} :
+  (#v x)⟪k, u⟫ = if x == k then u else #v x := rfl
+
+@[simp]
+lemma openTm0_bvar {u : Tm} {x : ℕ} :
+  (#v x)⟪u⟫ = if x == 0 then u else #v x := rfl
+
+@[simp]
+lemma openTm_fvar {k : ℕ} {u : Tm} {X : Name} :
+  ($v X)⟪k, u⟫ = $v X := rfl
+
+@[simp]
+lemma openTm0_fvar {u : Tm} {X : Name} :
+  ($v X)⟪u⟫ = $v X := rfl
+
+@[simp]
+lemma openTm_lam {k : ℕ} {u : Tm} {T : Ty} {t : Tm} :
+  (ƛ T => t)⟪k, u⟫ = (ƛ T => t⟪k + 1, u⟫) := rfl
+
+@[simp]
+lemma openTm0_lam {u : Tm} {T : Ty} {t : Tm} :
+  (ƛ T => t)⟪u⟫ = (ƛ T => t⟪1, u⟫) := rfl
+
+@[simp]
+lemma openTm_app {k : ℕ} {u : Tm} {t₁ t₂ : Tm} :
+  (t₁ ◦ t₂)⟪k, u⟫ = (t₁⟪k, u⟫ ◦ t₂⟪k, u⟫) := rfl
+
+@[simp]
+lemma openTm0_app {u : Tm} {t₁ t₂ : Tm} :
+  (t₁ ◦ t₂)⟪u⟫ = (t₁⟪u⟫ ◦ t₂⟪u⟫) := rfl
+
+@[simp]
+lemma openTm_tLam {k : ℕ} {u : Tm} {t : Tm} :
+  (Λ' t)⟪k, u⟫ = Λ' (t⟪k, u⟫) := rfl
+
+@[simp]
+lemma openTm0_tLam {u : Tm} {t : Tm} :
+  (Λ' t)⟪u⟫ = Λ' (t⟪u⟫) := rfl
+
+@[simp]
+lemma openTm_tApp {k : ℕ} {u : Tm} {t : Tm} {T : Ty} :
+  (t ⦃T⦄)⟪k, u⟫ = (t⟪k, u⟫⦃T⦄) := rfl
+
+@[simp]
+lemma openTm0_tApp {u : Tm} {t : Tm} {T : Ty} :
+  (t ⦃T⦄)⟪u⟫ = (t⟪u⟫⦃T⦄) := rfl
+
+def substTm (X : Name) (u t : Tm) : Tm :=
+  match t with
+  | .bvar idx => .bvar idx
+  | .fvar name => if name == X then u else .fvar name
+  | .app t₁ t₂ => .app (substTm X u t₁) (substTm X u t₂)
+  | .lam T t => .lam T (substTm X u t)
+  | .tLam t => .tLam (substTm X u t)
+  | .tApp t T => .tApp (substTm X u t) T
+
+@[simp]
+instance : Subst Tm Tm where
+  subst := substTm
+
+@[simp]
+lemma substTm_bvar {X : Name} {u : Tm} {idx : ℕ} :
+  (Tm.bvar idx)[X ↦ u] = Tm.bvar idx := rfl
+
+@[simp]
+lemma substTm_fvar {X : Name} {u : Tm} {name : Name} :
+  (Tm.fvar name)[X ↦ u] = if name == X then u else Tm.fvar name := rfl
+
+@[simp]
+lemma substTm_app {X : Name} {u : Tm} {t₁ t₂ : Tm} :
+  (Tm.app t₁ t₂)[X ↦ u] = Tm.app (t₁[X ↦ u]) (t₂[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_lam {X : Name} {u : Tm} {T : Ty} {t : Tm} :
+  (Tm.lam T t)[X ↦ u] = Tm.lam T (t[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_tLam {X : Name} {u : Tm} {t : Tm} :
+  (Tm.tLam t)[X ↦ u] = Tm.tLam (t[X ↦ u]) := rfl
+
+@[simp]
+lemma substTm_tApp {X : Name} {u : Tm} {t : Tm} {T : Ty} :
+  (Tm.tApp t T)[X ↦ u] = Tm.tApp (t[X ↦ u]) T := rfl
+
+@[simp]
+lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
+    t[X ↦ u] = t := by
+  induction t with
+  | bvar idx => simp
+  | fvar name =>
+    simp only [substTm_fvar, beq_iff_eq, ite_eq_right_iff]
+    simp [Tm.fv] at h
+    intro h'
+    subst h'
+    simp_all only [not_true_eq_false]
+  | app t₁ t₂ t₁_ih t₂_ih =>
+    simp only [substTm_app, Tm.app.injEq]
+    have h₁ : X ∉ t₁.fv := by
+      simp [Tm.fv] at h
+      simp_all only [not_false_eq_true, forall_const]
+    have h₂ : X ∉ t₂.fv := by
+      simp [Tm.fv] at h
+      simp_all only [not_false_eq_true, forall_const]
+    rw [t₁_ih h₁, t₂_ih h₂]
+    simp_all only [not_false_eq_true, forall_const, and_self]
+  | tApp t T ih =>
+    simp only [substTm_tApp, Tm.tApp.injEq, and_true]
+    simp only [Tm.fv] at h
+    rw [ih h]
+  | lam T t ih =>
+    simp only [substTm_lam, Tm.lam.injEq, true_and]
+    simp only [Tm.fv] at h
+    rw [ih h]
+  | tLam t ih =>
+    simp only [substTm_tLam, Tm.tLam.injEq]
+    simp only [Tm.fv] at h
+    rw [ih h]
+
+end SystemF
