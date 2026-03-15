@@ -216,8 +216,6 @@ theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : L
       simp only [↓reduceIte]
       have := openTy_lcTy_id hU
       simp [this]
-      dsimp [Open.open, openTy]
-      simp
     · simp only [h, ↓reduceIte]
       dsimp [Open.open, openTy]
       simp only [beq_iff_eq, right_eq_ite_iff]
