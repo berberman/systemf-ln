@@ -127,7 +127,7 @@ def openTmTy (k : ℕ) (U : Ty) (t : Tm) : Tm :=
   match t with
   | .bvar x => .bvar x
   | .app t₁ t₂ => .app (openTmTy k U t₁) (openTmTy k U t₂)
-  | .lam T' t => .lam (openTy k U T') (openTmTy (k + 1) U t)
+  | .lam T' t => .lam (openTy k U T') (openTmTy k U t)
   | .tLam t => .tLam (openTmTy (k + 1) U t)
   | .tApp t T' => .tApp (openTmTy k U t) (openTy k U T')
   | .fvar x => .fvar x
@@ -154,11 +154,11 @@ lemma openTmTy0_fvar {U : Ty} {X : Name} :
 
 @[simp]
 lemma openTmTy_lam {k : ℕ} {U : Ty} {T : Ty} {t : Tm} :
-  (ƛ T => t)⟪k, U⟫ = (ƛ (T⟪k, U⟫) => t⟪k + 1, U⟫) := rfl
+  (ƛ T => t)⟪k, U⟫ = (ƛ (T⟪k, U⟫) => t⟪k, U⟫) := rfl
 
 @[simp]
 lemma openTmTy0_lam {U : Ty} {T : Ty} {t : Tm} :
-  (ƛ T => t)⟪U⟫ = (ƛ (T⟪U⟫) => t⟪1, U⟫) := rfl
+  (ƛ T => t)⟪U⟫ = (ƛ (T⟪U⟫) => t⟪U⟫) := rfl
 
 @[simp]
 lemma openTmTy_app {k : ℕ} {U : Ty} {t₁ t₂ : Tm} :
@@ -382,6 +382,39 @@ lemma substTmTy_fresh {t : Tm} {X : Name} {U : Ty} (h : X ∉ t.fvTy) :
     simp only [Tm.fvTy] at h
     rw [ih h]
 
+@[simp]
+lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
+    t[X ↦ u] = t := by
+  induction t with
+  | bvar idx => simp
+  | fvar name =>
+    simp only [substTm_fvar, beq_iff_eq, ite_eq_right_iff]
+    simp [Tm.fv] at h
+    intro h'
+    subst h'
+    simp_all only [not_true_eq_false]
+  | app t₁ t₂ t₁_ih t₂_ih =>
+    simp only [substTm_app, Tm.app.injEq]
+    have h₁ : X ∉ t₁.fv := by
+      simp [Tm.fv] at h
+      simp_all only [not_false_eq_true, forall_const]
+    have h₂ : X ∉ t₂.fv := by
+      simp [Tm.fv] at h
+      simp_all only [not_false_eq_true, forall_const]
+    rw [t₁_ih h₁, t₂_ih h₂]
+    simp_all only [not_false_eq_true, forall_const, and_self]
+  | tApp t T ih =>
+    simp only [substTm_tApp, Tm.tApp.injEq, and_true]
+    simp only [Tm.fv] at h
+    rw [ih h]
+  | lam T t ih =>
+    simp only [substTm_lam, Tm.lam.injEq, true_and]
+    simp only [Tm.fv] at h
+    rw [ih h]
+  | tLam t ih =>
+    simp only [substTm_tLam, Tm.tLam.injEq]
+    simp only [Tm.fv] at h
+    rw [ih h]
 
 theorem openTm_substTmTy_comm {t u : Tm} {X : Name} {U : Ty} {k : ℕ} :
     (t[X ↦ U])⟪k, u[X ↦ U]⟫ = (t⟪k, u⟫)[X ↦ U]:= by
@@ -413,6 +446,10 @@ theorem openTm_substTmTy_comm_fresh {t u : Tm} {X : Name} {U : Ty} {k : ℕ} (h 
   rw [openTm_substTmTy_comm]
   rw [substTmTy_fresh h]
 
+/-
+  Opening a type with a free variable preserves the size of the type.
+  Used to show termination.
+-/
 @[simp]
 lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
