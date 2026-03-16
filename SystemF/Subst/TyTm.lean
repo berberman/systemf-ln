@@ -112,53 +112,11 @@ lemma substTmTy_tApp {X : Name} {U : Ty} {t : Tm} {T : Ty} :
 @[simp]
 lemma substTmTy_fresh {t : Tm} {X : Name} {U : Ty} (h : X ∉ t.fvTy) :
     t[X ↦ U] = t := by
-  induction t with
-  | bvar idx => simp
-  | fvar name => simp
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp
-    simp [Tm.fvTy] at h
-    simp_all only [not_false_eq_true, forall_const, and_self]
-  | tApp t T ih =>
-    simp only [substTmTy_tApp, Tm.tApp.injEq]
-    simp only [Tm.fvTy, Finset.mem_union, not_or] at h
-    constructor
-    · apply ih h.1
-    · apply substTy_fresh h.2
-  | lam T t ih =>
-    simp only [substTmTy_lam, Tm.lam.injEq]
-    simp only [Tm.fvTy, Finset.mem_union, not_or] at h
-    rw [ih h.2, substTy_fresh h.1]
-    simp only [and_self]
-  | tLam t ih =>
-    simp only [substTmTy_tLam, Tm.tLam.injEq]
-    simp only [Tm.fvTy] at h
-    rw [ih h]
-
+  induction t with aesop
 
 theorem openTm_substTmTy_comm {t u : Tm} {X : Name} {U : Ty} {k : ℕ} :
     (t[X ↦ U])⟪k, u[X ↦ U]⟫ = (t⟪k, u⟫)[X ↦ U]:= by
-  induction t generalizing k with
-  | bvar idx =>
-    simp only [openTm_bvar, beq_iff_eq, substTmTy_bvar]
-    dsimp [Subst.subst, substTmTy]
-    split
-    · aesop
-    · rfl
-  | fvar name => simp
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [openTm_app, substTmTy_app, Tm.app.injEq]
-    rw [t₁_ih, t₂_ih]
-    simp_all only [and_self]
-  | tApp t T ih =>
-    simp only [openTm_tApp, substTmTy_tApp, Tm.tApp.injEq, and_true]
-    rw [ih]
-  | lam T t ih =>
-    simp only [openTm_lam, substTmTy_lam, Tm.lam.injEq, true_and]
-    rw [ih]
-  | tLam t ih =>
-    simp only [openTm_tLam, substTmTy_tLam, Tm.tLam.injEq]
-    rw [ih]
+  induction t generalizing k with aesop
 
 theorem openTm_substTmTy_comm_fresh {t u : Tm} {X : Name} {U : Ty} {k : ℕ} (h : X ∉ u.fvTy) :
      (t[X ↦ U])⟪k, u⟫ = (t⟪k, u⟫)[X ↦ U] := by

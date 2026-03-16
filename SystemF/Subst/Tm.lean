@@ -106,35 +106,6 @@ lemma substTm_tApp {X : Name} {u : Tm} {t : Tm} {T : Ty} :
 @[simp]
 lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
     t[X ↦ u] = t := by
-  induction t with
-  | bvar idx => simp
-  | fvar name =>
-    simp only [substTm_fvar, beq_iff_eq, ite_eq_right_iff]
-    simp [Tm.fv] at h
-    intro h'
-    subst h'
-    simp_all only [not_true_eq_false]
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [substTm_app, Tm.app.injEq]
-    have h₁ : X ∉ t₁.fv := by
-      simp [Tm.fv] at h
-      simp_all only [not_false_eq_true, forall_const]
-    have h₂ : X ∉ t₂.fv := by
-      simp [Tm.fv] at h
-      simp_all only [not_false_eq_true, forall_const]
-    rw [t₁_ih h₁, t₂_ih h₂]
-    simp_all only [not_false_eq_true, forall_const, and_self]
-  | tApp t T ih =>
-    simp only [substTm_tApp, Tm.tApp.injEq, and_true]
-    simp only [Tm.fv] at h
-    rw [ih h]
-  | lam T t ih =>
-    simp only [substTm_lam, Tm.lam.injEq, true_and]
-    simp only [Tm.fv] at h
-    rw [ih h]
-  | tLam t ih =>
-    simp only [substTm_tLam, Tm.tLam.injEq]
-    simp only [Tm.fv] at h
-    rw [ih h]
+  induction t with aesop
 
 end SystemF

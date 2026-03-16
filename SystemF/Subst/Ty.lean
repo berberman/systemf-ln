@@ -80,37 +80,10 @@ instance : Subst Ty Ty where
   Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
   opening `T` with `U`, as long as `X` is not free in `T`.
 -/
+@[simp]
 theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
-  induction T generalizing k with
-  | bvar idx =>
-    simp
-    by_cases hidx : idx = 0
-    · aesop
-    · aesop
-  | fvar name =>
-    dsimp [Open.open, openTy]
-    simp only [beq_iff_eq, ite_eq_right_iff]
-    by_cases hname : name = X
-    · simp [hname]
-      simp [Ty.fv] at h
-      subst hname
-      simp_all only [not_true_eq_false]
-    · intro
-      simp_all only [not_true_eq_false]
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    dsimp [Open.open, openTy]
-    simp only [Ty.arr.injEq]
-    dsimp [Open.open, openTy] at T₁_ih T₂_ih
-    simp only [Ty.fv, Finset.mem_union, not_or] at h
-    rw [T₁_ih h.1, T₂_ih h.2]
-    constructor <;> rfl
-  | all T ih =>
-    simp only [Ty.fv] at h
-    specialize ih (k := k + 1) h
-    simp only [openTy_all, subst_all, Ty.all.injEq]
-    rw [ih]
-
+  induction T generalizing k with aesop
 
 /-
   Substituting a free variable that is not free in the type does nothing.
@@ -118,21 +91,7 @@ theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
 @[simp]
 lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
     T[X ↦ U] = T := by
-  induction T with
-  | bvar idx => rfl
-  | fvar name =>
-    simp only [subst_fvar, beq_iff_eq, ite_eq_right_iff]
-    intro rfl
-    simp [Ty.fv] at h
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [subst_arr, Ty.arr.injEq]
-    simp [Ty.fv] at h
-    simp_all only [not_false_eq_true, forall_const, and_self]
-  | all T ih =>
-    simp only [subst_all, Ty.all.injEq]
-    simp only [Ty.fv] at h
-    rw [ih h]
-
+  induction T with aesop
 /-
   Opening a type with a free variable preserves the size of the type.
   Used to show termination.
@@ -140,20 +99,7 @@ lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
 @[simp]
 lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
-  induction T generalizing k with
-  | bvar idx =>
-    simp only [openTy_bvar, beq_iff_eq]
-    dsimp [Ty.size]
-    split <;> rfl
-  | fvar name => dsimp [Open.open, openTy, Ty.size]
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [openTy_arr]
-    dsimp [Ty.size]
-    rw [T₁_ih, T₂_ih]
-  | all T ih =>
-    simp only [openTy_all]
-    dsimp [Ty.size]
-    rw [ih]
+  induction T generalizing k with aesop
 
 
 end SystemF

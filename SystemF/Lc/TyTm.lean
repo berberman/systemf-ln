@@ -7,6 +7,7 @@ namespace SystemF
   All bound *type* indices inside the term `t` are strictly less than `k`.
   Note: it ignores bound term variables, so `LcAtTyTm 0` is not equivalent to `LcTm`.
 -/
+@[aesop unsafe [constructors, cases]]
 inductive LcAtTyTm : ℕ → Tm → Prop where
   | bvar i k : LcAtTyTm k (#v i)
   | fvar X k : LcAtTyTm k ($v X)
@@ -62,65 +63,11 @@ theorem lcAtTyTm_openTmTy_id {t : Tm} {k : ℕ} (h : LcAtTyTm k t) (n : ℕ) (hn
 
 lemma lcAtTyTm_openTm_inv {t : Tm} {x : Name} {k n : ℕ}
     (h : LcAtTyTm k (t⟪n, $vx⟫)) : LcAtTyTm k t := by
-  induction t generalizing k n with
-  | bvar idx => constructor
-  | fvar name => constructor
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    cases h
-    constructor
-    · apply t₁_ih
-      assumption
-    · apply t₂_ih
-      assumption
-  | tApp t T ih =>
-    cases h
-    constructor
-    · apply ih
-      assumption
-    · assumption
-  | lam T t ih =>
-    cases h
-    constructor
-    · assumption
-    · apply ih
-      assumption
-  | tLam t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
+  induction t generalizing k n with aesop
 
 lemma lcAtTyTm_of_openTmTy {t : Tm} {X : Name} {k : ℕ}
     (h : LcAtTyTm k (t⟪k, $TX⟫)) : LcAtTyTm (k + 1) t := by
-  induction t generalizing k with
-  | bvar idx => constructor
-  | fvar name => constructor
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    cases h
-    constructor
-    · apply t₁_ih
-      assumption
-    · apply t₂_ih
-      assumption
-  | tApp t T ih =>
-    cases h
-    constructor
-    · apply ih
-      assumption
-    · apply lcAtTy_of_openTy
-      assumption
-  | lam T t ih =>
-    cases h
-    constructor
-    · apply lcAtTy_of_openTy
-      assumption
-    · apply ih
-      assumption
-  | tLam t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
+  induction t generalizing k with aesop
 
 lemma lcTm_implies_lcAtTyTm0 {t : Tm} (h : LcTm t) : LcAtTyTm 0 t := by
   induction h with
@@ -155,25 +102,6 @@ theorem openTmTy_lcTm_id {u : Tm} (hu : LcTm u) (k : ℕ) (V : Ty) :
 
 theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcTm u) :
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
-  induction t generalizing k with
-  | bvar idx => simp
-  | fvar name =>
-    simp only [openTmTy_fvar, substTm_fvar, beq_iff_eq]
-    split
-    · rw [openTmTy_lcTm_id hu]
-    · simp
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [openTmTy_app, substTm_app, Tm.app.injEq]
-    rw [t₁_ih, t₂_ih]
-    simp_all only [and_self]
-  | tApp t T ih =>
-    simp only [openTmTy_tApp, substTm_tApp, Tm.tApp.injEq, and_true]
-    rw [ih]
-  | lam T t ih =>
-    simp only [openTmTy_lam, substTm_lam, Tm.lam.injEq, true_and]
-    rw [ih]
-  | tLam t ih =>
-    simp only [openTmTy_tLam, substTm_tLam, Tm.tLam.injEq]
-    rw [ih]
+  induction t generalizing k with aesop
 
 end SystemF

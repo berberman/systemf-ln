@@ -8,6 +8,7 @@ namespace SystemF
   Here we use cofinite quantification.
   This is equivalent to `LcAtTy 0 T`.
 -/
+@[aesop unsafe [constructors, cases]]
 inductive LcTy : Ty → Prop where
   | fvar x : LcTy ($T x)
   | arr T₁ T₂ : LcTy T₁ → LcTy T₂ → LcTy (T₁ ⇒ T₂)
@@ -17,6 +18,7 @@ inductive LcTy : Ty → Prop where
   All bound indices in `T` are strictly less than `k`.
   This is called 'Degree' in A Charguéraud's paper.
 -/
+@[aesop unsafe [constructors, cases]]
 inductive LcAtTy : ℕ → Ty → Prop where
   | bvar i k : i < k → LcAtTy k (#T i)
   | fvar X k : LcAtTy k ($T X)
@@ -35,72 +37,27 @@ example : LcTy (∀' (#T 0 ⇒ #T 0)) := by
 /-
   If `T` is locally closed at index `k`, then opening `T` at index `n ≥ k` does nothing.
 -/
+@[simp]
 theorem lcAtTy_openTy_id {T : Ty} {k : ℕ} (h : LcAtTy k T) (n : ℕ) (hn : k ≤ n) (V : Ty) :
     T⟪n, V⟫ = T := by
-  induction h generalizing n with
-  | bvar i _ _ =>
-    have : i ≠ n := by omega
-    simp [this]
-  | fvar X k =>
-    rfl
-  | arr _ _ _ _ _ ih₁ ih₂ =>
-    simp only [openTy_arr, Ty.arr.injEq]
-    rw [ih₁, ih₂]
-    constructor
-    · rfl
-    · rfl
-    · assumption
-    assumption
-  | all T' k h' ih' =>
-    simp only [openTy_all, Ty.all.injEq]
-    have : k + 1 ≤ n + 1 := by aesop
-    rw [ih' (n + 1)]
-    assumption
+  induction h generalizing n with aesop (add safe tactic (by omega))
 
 /-
   If opening `T` yields a locally closed type at index `k`,
   then `T` is locally closed at index `k + 1`.
 -/
+@[aesop unsafe apply]
 theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
     (h : LcAtTy k (T⟪k, $TX⟫)) : LcAtTy (k + 1) T := by
-  induction T generalizing k with
-  | bvar _ =>
-    simp only [openTy_bvar, beq_iff_eq] at h
-    split at h
-    · apply LcAtTy.bvar
-      aesop
-    · cases h
-      apply LcAtTy.bvar
-      omega
-  | fvar Y =>
-    apply LcAtTy.fvar
-  | arr T₁ T₂ ih₁ ih₂ =>
-    cases h
-    apply LcAtTy.arr
-    · apply ih₁; assumption
-    · apply ih₂; assumption
-  | all T' ih' =>
-    cases h
-    apply LcAtTy.all
-    apply ih'
-    assumption
+  induction T generalizing k with aesop (add safe tactic (by omega))
 
 /-
   If `T` is locally closed at index `k`, then it is also locally closed at any index `n ≥ k`.
 -/
+@[aesop unsafe apply]
 lemma lcAtTy_weaken {T : Ty} {k n : ℕ} (h : LcAtTy k T) (hle : k ≤ n) :
     LcAtTy n T := by
-  induction h generalizing n with
-  | bvar i k _ => constructor; omega
-  | fvar X k => constructor
-  | arr T₁ T₂ k _ _ ih₁ ih₂ =>
-    constructor
-    · apply ih₁; assumption
-    · apply ih₂; assumption
-  | all T k' _ ih =>
-    constructor
-    apply ih
-    omega
+  induction h generalizing n with aesop (add safe tactic (by omega))
 
 /-
   If `T` is locally closed at index `k + 1` and `U` is locally closed,
@@ -108,31 +65,7 @@ lemma lcAtTy_weaken {T : Ty} {k n : ℕ} (h : LcAtTy k T) (hle : k ≤ n) :
 -/
 lemma lcAtTy_openTy_inv_aux {k : ℕ} {T U : Ty}
   (hT : LcAtTy (k + 1) T) (hU : LcAtTy 0 U) : LcAtTy k (T⟪k, U⟫) := by
-  induction T generalizing k with
-  | bvar idx =>
-    cases hT
-    simp only [openTy_bvar, beq_iff_eq]
-    by_cases heq : idx = k
-    · simp only [heq, ↓reduceIte]
-      apply lcAtTy_weaken hU
-      omega
-    · simp only [heq, ↓reduceIte]
-      constructor
-      omega
-  | fvar name =>
-    constructor
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    cases hT with
-    | arr _ _ _ ih₁ ih₂ =>
-      constructor
-      · exact T₁_ih ih₁
-      · exact T₂_ih ih₂
-  | all T ih =>
-    cases hT with
-    | all _ _ ih' =>
-      constructor
-      apply ih
-      assumption
+  induction T generalizing k with aesop (add safe tactic (by omega))
 
 /-
   If `T` has a bound variable, then opening `T` with a free variable yields a locally closed type.
@@ -175,7 +108,7 @@ theorem lcAtTy0_implies_lcTy {T : Ty} (h : LcAtTy 0 T) : LcTy T := by
     exact lcAtTy0_implies_lcTy this
 termination_by T.size
 decreasing_by
-  all_goals (simp_all; dsimp [Ty.size]; omega)
+  all_goals (simp_all; try omega)
 
 /-
   Locally closed types are exactly those that are locally closed at index 0.
@@ -201,34 +134,7 @@ theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
 -/
 theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : LcTy U) :
     (T[X ↦ U])⟪k, ($T Y)⟫ = (T⟪k, $T Y⟫)[X ↦ U] := by
-  induction T generalizing k with
-  | bvar X =>
-    simp only [subst_bvar, openTy_bvar, beq_iff_eq]
-    split
-    · simp only [subst_fvar, beq_iff_eq, right_eq_ite_iff]
-      intro
-      contradiction
-    · simp
-  | fvar Z =>
-    simp only [subst_fvar, beq_iff_eq]
-    by_cases h : X = Z
-    · cases h
-      simp only [↓reduceIte]
-      have := openTy_lcTy_id hU
-      simp [this]
-    · simp only [h, ↓reduceIte]
-      dsimp [Open.open, openTy]
-      simp only [beq_iff_eq, right_eq_ite_iff]
-      intro h
-      contradiction
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [subst_arr, openTy_arr, Ty.arr.injEq]
-    rw [T₁_ih, T₂_ih]
-    constructor <;> rfl
-  | all T ih =>
-    simp only [subst_all, openTy_all, Ty.all.injEq]
-    rw [ih]
-
+  induction T generalizing k with aesop
 /-
   Substitution preserves locally closedness of types
 -/
@@ -257,29 +163,7 @@ theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T
 
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
     (T⟪k, V⟫)[X ↦ U] = (T[X ↦ U])⟪k, V[X ↦ U]⟫ := by
-  induction T generalizing k with
-  | bvar idx =>
-    simp
-    split
-    · rfl
-    · simp
-  | fvar name =>
-    simp only [subst_fvar, beq_iff_eq]
-    by_cases h : name = X
-    · dsimp [Open.open, openTy, Subst.subst, substTy]
-      simp only [h, BEq.rfl, ↓reduceIte]
-      -- U = openTy k (substTy X U V) U
-      change U = (U⟪k, V[X ↦ U]⟫)
-      rw [openTy_lcTy_id hU k (V[X ↦ U])]
-    · dsimp [Open.open, openTy, Subst.subst, substTy]
-      aesop
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [openTy_arr, subst_arr, Ty.arr.injEq]
-    rw [T₁_ih, T₂_ih]
-    simp_all only [and_self]
-  | all T ih =>
-    simp only [openTy_all, subst_all, Ty.all.injEq]
-    rw [ih]
+  induction T generalizing k with aesop
 
 /-
   If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,

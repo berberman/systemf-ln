@@ -8,6 +8,7 @@ namespace SystemF
 /-
   Similar to `LcTy`, but for terms.
 -/
+@[aesop unsafe [constructors, cases]]
 inductive LcTm : Tm → Prop where
   | fvar x : LcTm ($v x)
   | app t₁ t₂ : LcTm t₁ → LcTm t₂ → LcTm (t₁ ◦ t₂)
@@ -20,6 +21,7 @@ inductive LcTm : Tm → Prop where
   All bound *term* indices in `t` are strictly less than `k`.
   Note: it ignores bound type variables, so `LcAtTm 0` is not equivalent to `LcTm`.
 -/
+@[aesop unsafe [constructors, cases]]
 inductive LcAtTm : ℕ → Tm → Prop where
   | bvar i k : i < k → LcAtTm k (#v i)
   | fvar x k : LcAtTm k ($v x)
@@ -47,92 +49,15 @@ example : ¬ LcTm (ƛ ($T "A") => #v 1) := by
 
 theorem lcAtTm_openTm_id {t : Tm} {k : ℕ} (h : LcAtTm k t) (n : ℕ) (hn : k ≤ n) (u : Tm) :
     t⟪n, u⟫ = t := by
-  induction h generalizing n with
-  | bvar i k _ =>
-    simp only [openTm_bvar, beq_iff_eq, ite_eq_right_iff]
-    intro h
-    omega
-  | fvar x k => simp
-  | app t₁ t₂ k _ _ ih₁ ih₂ =>
-    simp only [openTm_app, Tm.app.injEq]
-    rw [ih₁ _ hn, ih₂ _ hn]
-    simp_all only [and_self]
-  | lam T t k _ ih =>
-    simp only [openTm_lam, Tm.lam.injEq, true_and]
-    rw [ih (n + 1) (by omega)]
-  | tApp t T k _ ih =>
-    simp only [openTm_tApp, Tm.tApp.injEq, and_true]
-    rw [ih _ hn]
-  | tLam t k _ ih =>
-    simp only [openTm_tLam, Tm.tLam.injEq]
-    rw [ih _ hn]
+  induction h generalizing n with aesop (add safe tactic (by omega))
 
 theorem lcAtTm_of_openTm {t : Tm} {x : Name} {k : ℕ}
     (h : LcAtTm k (t⟪k, $vx⟫)) : LcAtTm (k + 1) t := by
-  induction t generalizing k with
-  | bvar idx =>
-    simp only [openTm_bvar, beq_iff_eq] at h
-    split at h
-    · constructor
-      omega
-    · cases h
-      constructor
-      omega
-  | fvar name => constructor
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    cases h
-    constructor
-    · apply t₁_ih
-      assumption
-    · apply t₂_ih
-      assumption
-  | tApp t T ih =>
-    cases h
-    constructor
-    · apply ih
-      assumption
-  | lam T t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
-  | tLam t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
+  induction t generalizing k with aesop (add safe tactic (by omega))
 
 lemma lcAtTm_openTmTy_inv {t : Tm} {X : Name} {k n : ℕ}
     (h : LcAtTm k (t⟪n, $TX⟫)) : LcAtTm k t := by
-  induction t generalizing k n with
-  | bvar idx =>
-    simp at h
-    assumption
-  | fvar name =>
-    simp at h
-    assumption
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    cases h
-    constructor
-    · apply t₁_ih
-      assumption
-    · apply t₂_ih
-      assumption
-  | tApp t T ih =>
-    cases h
-    constructor
-    · apply ih
-      assumption
-  | lam T t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
-  | tLam t ih =>
-    cases h
-    constructor
-    apply ih
-    assumption
+  induction t generalizing k n with aesop (add safe tactic (by omega))
 
 theorem lcTm_implies_lcAtTm0 {t : Tm} (h : LcTm t) : LcAtTm 0 t := by
   induction h with
@@ -162,13 +87,7 @@ theorem lcTm_implies_lcAtTm0 {t : Tm} (h : LcTm t) : LcAtTm 0 t := by
 -/
 theorem lcAtTm0_does_not_imply_lcTm : ∃ t, (LcAtTm 0 t ∧ ¬ LcTm t) := by
   use ƛ (#T 0) => $v "x"
-  constructor
-  · constructor
-    constructor
-  · intro h
-    cases h with
-    | lam L T t h₁ h₂ =>
-      cases h₁
+  aesop
 
 @[simp]
 theorem openTm_lcTm_id {u : Tm} (h : LcTm u) (k : ℕ) (v : Tm) :
@@ -179,28 +98,7 @@ theorem openTm_lcTm_id {u : Tm} (h : LcTm u) (k : ℕ) (v : Tm) :
 
 theorem openTm_substTm_comm {t u v : Tm} {X : Name} {k : ℕ} (hu : LcTm u) :
     (t[X ↦ u])⟪k, v[X ↦ u]⟫ = (t⟪k, v⟫)[X ↦ u]:= by
-  induction t generalizing k with
-  | bvar idx =>
-    simp
-    split <;> rfl
-  | fvar name =>
-    simp only [substTm_fvar, beq_iff_eq, openTm_fvar]
-    split
-    · rw [openTm_lcTm_id hu]
-    · simp
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [substTm_app, openTm_app, Tm.app.injEq]
-    rw [t₁_ih, t₂_ih]
-    simp_all only [and_self]
-  | tApp t T ih =>
-    simp only [substTm_tApp, openTm_tApp, Tm.tApp.injEq, and_true]
-    rw [ih]
-  | lam T t ih =>
-    simp only [substTm_lam, openTm_lam, Tm.lam.injEq, true_and]
-    rw [ih]
-  | tLam t ih =>
-    simp only [substTm_tLam, openTm_tLam, Tm.tLam.injEq]
-    rw [ih]
+  induction t generalizing k with aesop
 
 theorem openTm_substTm_comm_of_neq {t u : Tm} {x y : Name} {k : ℕ}
     (hNeq : y ≠ x) (hu : LcTm u) :
