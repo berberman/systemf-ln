@@ -1,6 +1,7 @@
 import SystemF.Syntax
 import SystemF.Lc.Ty
 import SystemF.Lc.Tm
+import SystemF.Typing
 
 import Mathlib.Logic.Relation
 
@@ -59,6 +60,24 @@ lemma small_step_deterministic {t t₁ t₂ : Tm}
     | tApp t t' T _ h => cases h
     | tAppTLam t T _ _ => rfl
 
+lemma canonical_forms_arr {v : Tm} {T₁ T₂ : Ty}
+    (hTyping : ∅ ⊢ v ∶ T₁ ⇒ T₂) (hVal : Value v) :
+    ∃ t, v = (ƛ T₁ => t) := by
+  cases hVal with
+  | lam T t =>
+    cases hTyping
+    use t
+  | tLam t =>
+    cases hTyping
 
+lemma canonical_forms_all {v : Tm} {T : Ty}
+    (hTyping : ∅ ⊢ v ∶ ∀' T) (hVal : Value v) :
+    ∃ t, v = (Λ' t) := by
+  cases hVal with
+  | lam T t =>
+    cases hTyping
+  | tLam t =>
+    cases hTyping
+    use t
 
 end SystemF

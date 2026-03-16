@@ -250,4 +250,51 @@ theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
         rw [substCtx_fresh hX₄] at this
         exact this
 
+theorem progress {t : Tm} {T : Ty} (hTyping : ∅ ⊢ t ∶ T) :
+    Value t ∨ ∃ t', t ⟶ t' := by
+  generalize h : (∅ : Context) = Γ at hTyping
+  induction hTyping with (subst h)
+  | var Γ x T _ _ _ => contradiction
+  | lam L Γ T₁ T₂ t _ _ _ => left; constructor
+  | app Γ t₁ t₂ T₁ T₂ hTy₁ hTy₂ ih₁ ih₂ =>
+    simp_all only [List.empty_eq, forall_const]
+    cases ih₁ with
+    | inl hV₁ =>
+      cases ih₂ with
+      | inl hV₂ =>
+        obtain ⟨f, rfl⟩ := canonical_forms_arr hTy₁ hV₁
+        right
+        use f⟪t₂⟫
+        constructor
+        · exact typing_regularity_tm hTy₁
+        · assumption
+      | inr h =>
+        obtain ⟨t₂', hStep⟩ := h
+        right
+        use t₁ ◦ t₂'
+        constructor <;> assumption
+    | inr h =>
+      right
+      obtain ⟨t₁', hStep⟩ := h
+      use t₁' ◦ t₂
+      constructor
+      · exact typing_regularity_tm hTy₂
+      · assumption
+  | tLam L Γ t T _ _ => left; constructor
+  | tApp Γ t T₁ T₂ hTy _ ih =>
+    simp_all only [List.empty_eq, forall_const]
+    cases ih with
+    | inl hV =>
+      obtain ⟨f, rfl⟩ := canonical_forms_all hTy hV
+      right
+      use f⟪T₂⟫
+      constructor
+      · exact typing_regularity_tm hTy
+      · assumption
+    | inr h =>
+      obtain ⟨t', hStep⟩ := h
+      right
+      use t'⦃T₂⦄
+      constructor <;> assumption
+
 end SystemF
