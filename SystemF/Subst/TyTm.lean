@@ -166,5 +166,30 @@ theorem openTm_substTmTy_comm_fresh {t u : Tm} {X : Name} {U : Ty} {k : ℕ} (h 
   rw [openTm_substTmTy_comm]
   rw [substTmTy_fresh h]
 
+theorem substTmTy_openTmTy_var {t : Tm} {U : Ty} {X : Name} {k : ℕ} (h : X ∉ t.fvTy) :
+    (t⟪k, $T X⟫)[X ↦ U] = t⟪k, U⟫ := by
+  induction t generalizing k with
+  | bvar idx => simp
+  | fvar name => simp
+  | app t₁ t₂ t₁_ih t₂_ih =>
+    simp only [openTmTy_app, substTmTy_app, Tm.app.injEq]
+    simp [Tm.fvTy] at h
+    rw [t₁_ih (by aesop), t₂_ih (by aesop)]
+    aesop
+  | tApp t T ih =>
+    simp only [openTmTy_tApp, substTmTy_tApp, Tm.tApp.injEq]
+    simp [Tm.fvTy] at h
+    rw [ih (by aesop)]
+    rw [substTy_openTy_var (by aesop)]
+    aesop
+  | lam T t ih =>
+    simp only [openTmTy_lam, substTmTy_lam, Tm.lam.injEq]
+    simp [Tm.fvTy] at h
+    rw [ih (by aesop)]
+    rw [substTy_openTy_var (by aesop)]
+    aesop
+  | tLam t ih =>
+    simp only [openTmTy_tLam, substTmTy_tLam, Tm.tLam.injEq]
+    rw [ih (by aesop)]
 
 end SystemF

@@ -7,4 +7,4 @@ import SystemF.Lc.Tm
 import SystemF.Lc.TyTm
 import SystemF.Context
 import SystemF.Typing
-import SystemF.Meta
+import SystemF.Metatheory

@@ -137,4 +137,35 @@ lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
     simp only [Tm.fv] at h
     rw [ih h]
 
+theorem substTm_openTm_var {t u : Tm} {x : Name} {k : ℕ} (h : x ∉ t.fv) :
+    (t⟪k, $v x⟫)[x ↦ u] = t⟪k, u⟫ := by
+  induction t generalizing k with
+  | bvar idx =>
+    simp
+    by_cases hidx : idx = k
+    · aesop
+    · aesop
+  | fvar name =>
+    simp only [openTm_fvar, substTm_fvar, beq_iff_eq, ite_eq_right_iff]
+    by_cases hname : name = x
+    · simp [hname]
+      simp [Tm.fv] at h
+      simp_all only [not_true_eq_false]
+    · intro
+      simp_all only [not_true_eq_false]
+  | app t₁ t₂ t₁_ih t₂_ih =>
+    simp only [openTm_app, substTm_app, Tm.app.injEq]
+    simp only [Tm.fv, Finset.mem_union, not_or] at h
+    rw [t₁_ih h.1, t₂_ih h.2]
+    constructor <;> rfl
+  | lam T t ih =>
+    simp only [openTm_lam, substTm_lam, Tm.lam.injEq, true_and]
+    rw [ih h]
+  | tApp t T ih =>
+    simp only [openTm_tApp, substTm_tApp, Tm.tApp.injEq, and_true]
+    rw [ih h]
+  | tLam t ih =>
+    simp only [openTm_tLam, substTm_tLam, Tm.tLam.injEq]
+    rw [ih h]
+
 end SystemF

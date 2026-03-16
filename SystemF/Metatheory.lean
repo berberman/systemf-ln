@@ -1,6 +1,7 @@
 import SystemF.Lc.Tm
 import SystemF.Lc.TyTm
 import SystemF.Typing
+import SystemF.Semantics
 
 namespace SystemF
 
@@ -205,5 +206,48 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
     constructor
     apply ih <;> assumption
     assumption
+
+theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
+    (hTyping : Γ ⊢ t ∶ T) (hStep : t ⟶ t') :
+    Γ ⊢ t' ∶ T := by
+  induction hStep generalizing T with
+  | app₁ t₁ t₁' t₂ _ _ _ =>
+    cases hTyping
+    constructor <;> aesop
+  | app₂ v t₂ t₂' _ _ _ =>
+    cases hTyping
+    constructor <;> aesop
+  | tApp t t' T _ _ _ =>
+    cases hTyping
+    constructor <;> aesop
+  | appLam t T v _ _ =>
+    cases hTyping with
+    | app Γ t₁ t₂ T₁ T₂ hT₁ hT₂ =>
+      cases hT₁ with
+      | lam L Γ T₁ T₂ t _ hBody =>
+        obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+        have hx₁ : x ∉ L := by aesop
+        have hx₂ : x ∉ t.fv := by aesop
+        rw [←substTm_openTm_var hx₂]
+        have := hBody x hx₁
+        have := typing_subst_tm (Γ₁ := []) (Γ₂ := Γ) this (by aesop)
+        simp only [List.nil_append] at this
+        exact this
+  | tAppTLam t T _ _ =>
+    cases hTyping with
+    | tApp Γ t T₁ T₂ hT₁ _ =>
+      cases hT₁ with
+      | tLam L Γ t T hBody =>
+        obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T₁.fv ∪ t.fvTy ∪ Γ.fv)
+        have hX₁ : X ∉ L := by aesop
+        have hX₂ : X ∉ T₁.fv := by aesop
+        have hX₃ : X ∉ t.fvTy := by aesop
+        have hX₄ : X ∉ Γ.fv := by aesop
+        rw [←substTy_openTy_var hX₂]
+        rw [←substTmTy_openTmTy_var hX₃]
+        have := hBody X hX₁
+        have := typing_subst_ty (X := X) (T := T₁⟪$TX⟫) (U := T) this (by assumption)
+        rw [substCtx_fresh hX₄] at this
+        exact this
 
 end SystemF
