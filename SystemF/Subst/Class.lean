@@ -21,5 +21,12 @@ scoped notation T "⟪" U "⟫" => Open.open 0 U T
 class Subst (α : Type) (β : Type) where
   subst : Name → α → β → β
 
-scoped notation T "[" X " ↦ " U "]" => Subst.subst X U T
+scoped syntax:max term:max noWs "[" term " ↦ " term "]" : term
+macro_rules
+  | `($A[$X ↦ $U]) => ``(Subst.subst $X $U $A)
+@[scoped app_unexpander Subst.subst]
+meta def unexpandSubst : Lean.PrettyPrinter.Unexpander
+  | `($_ $X $U $A) => ``($A[$X ↦ $U])
+  | _              => throw ()
+
 end SystemF
