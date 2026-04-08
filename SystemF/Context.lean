@@ -2,17 +2,31 @@ import SystemF.Lc.Ty
 
 namespace SystemF
 
+inductive Binding where
+  /--
+    Type variable binding
+  -/
+  | ty
+  /--
+    Term variable binding with its type
+  -/
+  | tm (T : Ty)
+deriving Repr, DecidableEq
 
-abbrev Context := List (Name × Ty)
+def Binding.fv : Binding → Finset Name
+  | .ty => ∅
+  | .tm T => T.fv
+
+abbrev Context := List (Name × Binding)
 
 /-
   The free type variables in a context
 -/
 def Context.fv (Γ : Context) : Finset Name :=
-  Γ.foldr (fun ⟨_, T⟩ acc => acc ∪ T.fv) ∅
+  Γ.foldr (fun ⟨_, b⟩ acc => acc ∪ b.fv) ∅
 
 /-
-  Term variables in context
+  All variables in context
 -/
 def Context.dom (Γ : Context) : Finset Name :=
   Γ.foldr (fun ⟨x, _⟩ acc => acc ∪ {x}) ∅
@@ -21,8 +35,16 @@ def Context.dom (Γ : Context) : Finset Name :=
 lemma dom_nil : Context.dom [] = ∅ := rfl
 
 @[simp]
-lemma dom_cons {x : Name} {T : Ty} {Γ : Context} :
-  Context.dom ((x, T) :: Γ) = {x} ∪ Γ.dom := by simp [Context.dom]
+lemma dom_cons {x : Name} {b : Binding} {Γ : Context} :
+    Context.dom ((x, b) :: Γ) = {x} ∪ Γ.dom := by simp [Context.dom]
+
+@[simp]
+lemma dom_cons_tm {x : Name} {T : Ty} {Γ : Context} :
+  Context.dom ((x, .tm T) :: Γ) = {x} ∪ Γ.dom := by simp [Context.dom]
+
+@[simp]
+lemma dom_cons_ty {X : Name} {Γ : Context} :
+  Context.dom ((X, .ty) :: Γ) = {X} ∪ Γ.dom := by simp [Context.dom]
 
 @[simp]
 lemma dom_append {Γ₁ Γ₂ : Context} :
@@ -30,68 +52,62 @@ lemma dom_append {Γ₁ Γ₂ : Context} :
   induction Γ₁ with
   | nil => simp only [List.nil_append, dom_nil, Finset.empty_union]
   | cons head tail ih =>
-    cases head
-    simp only [List.cons_append, dom_cons, Finset.singleton_union, Finset.insert_union]
-    rw [ih]
+    rcases head with ⟨k, v⟩
+    cases v with simp_all
 
-lemma mem_dom_of_mem {Γ : Context} {x : Name} {T : Ty} (h : (x, T) ∈ Γ) : x ∈ Γ.dom := by
+lemma mem_dom_of_mem {Γ : Context} {x : Name} {b : Binding} (h : (x, b) ∈ Γ) : x ∈ Γ.dom := by
   induction Γ with
   | nil => contradiction
   | cons head tail ih =>
-    cases head
-    simp
-    cases h
-    · simp_all only [true_or]
-    · aesop
+    rcases head with ⟨y, v⟩
+    cases v with aesop
 
 /-
   Well-formed contexts: all types are locally closed and all variables are distinct.
 -/
 inductive WfContext : Context → Prop where
   | nil : WfContext []
-  | cons Γ x T : WfContext Γ → x ∉ Γ.dom → LcTy T → WfContext ((x, T) :: Γ)
+  | consTm Γ x T : WfContext Γ → x ∉ Γ.dom → LcTy T → WfContext ((x, .tm T) :: Γ)
+  | consTy Γ X : WfContext Γ → X ∉ Γ.dom → WfContext ((X, .ty) :: Γ)
 
-lemma wf_lookup_mid {Γ₁ Γ₂ : Context} {x : Name} {T U : Ty}
-    (hWf : WfContext (Γ₁ ++ (x, U) :: Γ₂))
-    (hMem : (x, T) ∈ Γ₁ ++ (x, U) :: Γ₂) :
-    T = U := by
+lemma wf_lookup_mid {Γ₁ Γ₂ : Context} {x : Name} {b₁ b₂ : Binding}
+    (hWf : WfContext (Γ₁ ++ (x, b₁) :: Γ₂))
+    (hMem : (x, b₂) ∈ Γ₁ ++ (x, b₁) :: Γ₂) :
+    b₂ = b₁ := by
   induction Γ₁ with
   | nil =>
     simp_all only [List.nil_append, List.mem_cons, Prod.mk.injEq, true_and]
     cases hMem with
     | inl h => exact h
     | inr h =>
-      cases hWf
-      have := mem_dom_of_mem h
-      contradiction
+      cases hWf <;> (have := mem_dom_of_mem h; contradiction)
   | cons head tail ih =>
     rcases head with ⟨y, V⟩
-    simp only [List.cons_append, List.mem_cons, Prod.mk.injEq, List.mem_append, true_and] at hMem
+    simp_all only [List.mem_append, List.mem_cons, Prod.mk.injEq, true_and, List.cons_append]
     cases hMem with
     | inl h =>
       cases hWf with
-      | cons Γ x T _ _ _ => aesop
+      | consTm Γ x T _ _ _ => aesop
+      | consTy Γ X _ _ => aesop
     | inr h =>
       cases hWf with
-      | cons Γ x T _ _ _ => aesop
+      | consTm Γ x T _ _ _ => aesop
+      | consTy Γ X _ _ => aesop
 
-lemma wf_remove_mid {Γ₁ Γ₂ : Context} {x : Name} {U : Ty}
-    (hWf : WfContext (Γ₁ ++ (x, U) :: Γ₂)) :
+lemma wf_remove_mid {Γ₁ Γ₂ : Context} {x : Name} {b : Binding}
+    (hWf : WfContext (Γ₁ ++ (x, b) :: Γ₂)) :
     WfContext (Γ₁ ++ Γ₂) := by
   induction Γ₁ with
   | nil => cases hWf with
-    | cons Γ x T _ _ _ =>
-      simp only [List.nil_append]
-      assumption
+    | consTm Γ x T _ _ _ => aesop
+    | consTy Γ X _ _ => aesop
   | cons head tail ih =>
     rcases head with ⟨y, V⟩
     simp only [List.cons_append]
     cases hWf with
-    | cons Γ x T _ _ _ =>
-      constructor
-      · apply ih
-        assumption
-      · aesop
-      · assumption
+    | consTm Γ x T _ _ _ =>
+      constructor <;> aesop
+    | consTy Γ X _ _ =>
+      constructor <;> aesop
 
 end SystemF
