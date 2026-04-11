@@ -62,22 +62,17 @@ instance : Subst Ty Ty where
   Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
   opening `T` with `U`, as long as `X` is not free in `T`.
 -/
+@[simp]
 theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
-  induction T generalizing k with simp [Ty.fv] at h
-  | bvar idx =>
-    simp
-    split <;> aesop
-  | _ => simp [*]
-
+  induction T generalizing k with aesop
 
 /-
   Substituting a free variable that is not free in the type does nothing.
 -/
 @[simp]
 lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
-    T[X ↦ U] = T := by
-  induction T with (simp [Ty.fv] at h; simp [*])
+    T[X ↦ U] = T := by induction T with aesop
 
 /-
   Opening a type with a free variable preserves the size of the type.
@@ -86,7 +81,7 @@ lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
 @[simp]
 lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
-  induction T generalizing k with simp [Ty.size, *] <;> split <;> rfl
+  induction T generalizing k with aesop
 
 
 end SystemF

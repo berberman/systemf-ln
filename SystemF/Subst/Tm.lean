@@ -31,10 +31,6 @@ lemma openTm_fvar {k : ℕ} {u : Tm} {X : Name} :
   ($v X)⟪k, u⟫ = $v X := rfl
 
 @[simp]
-lemma openTm0_fvar {u : Tm} {X : Name} :
-  ($v X)⟪u⟫ = $v X := rfl
-
-@[simp]
 lemma openTm_lam {k : ℕ} {u : Tm} {T : Ty} {t : Tm} :
   (ƛ T => t)⟪k, u⟫ = (ƛ T => t⟪k + 1, u⟫) := rfl
 
@@ -106,66 +102,10 @@ lemma substTm_tApp {X : Name} {u : Tm} {t : Tm} {T : Ty} :
 @[simp]
 lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
     t[X ↦ u] = t := by
-  induction t with
-  | bvar idx => simp
-  | fvar name =>
-    simp only [substTm_fvar, beq_iff_eq, ite_eq_right_iff]
-    simp [Tm.fv] at h
-    intro h'
-    subst h'
-    simp_all only [not_true_eq_false]
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [substTm_app, Tm.app.injEq]
-    have h₁ : X ∉ t₁.fv := by
-      simp [Tm.fv] at h
-      simp_all only [not_false_eq_true, forall_const]
-    have h₂ : X ∉ t₂.fv := by
-      simp [Tm.fv] at h
-      simp_all only [not_false_eq_true, forall_const]
-    rw [t₁_ih h₁, t₂_ih h₂]
-    simp_all only [not_false_eq_true, forall_const, and_self]
-  | tApp t T ih =>
-    simp only [substTm_tApp, Tm.tApp.injEq, and_true]
-    simp only [Tm.fv] at h
-    rw [ih h]
-  | lam T t ih =>
-    simp only [substTm_lam, Tm.lam.injEq, true_and]
-    simp only [Tm.fv] at h
-    rw [ih h]
-  | tLam t ih =>
-    simp only [substTm_tLam, Tm.tLam.injEq]
-    simp only [Tm.fv] at h
-    rw [ih h]
+  induction t with aesop
 
 theorem substTm_openTm_var {t u : Tm} {x : Name} {k : ℕ} (h : x ∉ t.fv) :
     (t⟪k, $v x⟫)[x ↦ u] = t⟪k, u⟫ := by
-  induction t generalizing k with
-  | bvar idx =>
-    simp
-    by_cases hidx : idx = k
-    · aesop
-    · aesop
-  | fvar name =>
-    simp only [openTm_fvar, substTm_fvar, beq_iff_eq, ite_eq_right_iff]
-    by_cases hname : name = x
-    · simp [hname]
-      simp [Tm.fv] at h
-      simp_all only [not_true_eq_false]
-    · intro
-      simp_all only [not_true_eq_false]
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [openTm_app, substTm_app, Tm.app.injEq]
-    simp only [Tm.fv, Finset.mem_union, not_or] at h
-    rw [t₁_ih h.1, t₂_ih h.2]
-    constructor <;> rfl
-  | lam T t ih =>
-    simp only [openTm_lam, substTm_lam, Tm.lam.injEq, true_and]
-    rw [ih h]
-  | tApp t T ih =>
-    simp only [openTm_tApp, substTm_tApp, Tm.tApp.injEq, and_true]
-    rw [ih h]
-  | tLam t ih =>
-    simp only [openTm_tLam, substTm_tLam, Tm.tLam.injEq]
-    rw [ih h]
+  induction t generalizing k with aesop
 
 end SystemF
