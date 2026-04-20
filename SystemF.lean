@@ -8,3 +8,4 @@ import SystemF.Lc.TyTm
 import SystemF.Context
 import SystemF.Typing
 import SystemF.Metatheory
+import SystemF.Examples
