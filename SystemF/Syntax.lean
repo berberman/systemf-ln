@@ -6,7 +6,7 @@ namespace SystemF
 
 abbrev Name := String
 
-@[aesop safe forward]
+@[aesop safe forward (immediate := [L])]
 theorem exists_fresh_name (L : Finset Name) : ∃ x, x ∉ L := by
   apply L.exists_not_mem_of_card_lt_enatCard
   simp_all only [ENat.card_eq_top_of_infinite, ENat.coe_lt_top]

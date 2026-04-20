@@ -17,17 +17,12 @@ def openTmTy (k : ℕ) (U : Ty) (t : Tm) : Tm :=
   | .tApp t T' => .tApp (openTmTy k U t) (openTy k U T')
   | .fvar x => .fvar x
 
-@[simp]
 instance : Open Ty Tm where
   «open» := openTmTy
 
 @[simp]
 lemma openTmTy_bvar {k : ℕ} {U : Ty} {x : ℕ} :
   (#v x)⟪k, U⟫ = #v x := rfl
-
-@[simp]
-lemma openTmTy0_bvar {U : Ty} {x : ℕ} :
-  (#v x)⟪U⟫ = #v x := rfl
 
 @[simp]
 lemma openTmTy_fvar {k : ℕ} {U : Ty} {X : Name} :
@@ -61,7 +56,6 @@ def substTmTy (X : Name) (U : Ty) (t : Tm) : Tm :=
   | .tLam t => .tLam (substTmTy X U t)
   | .tApp t T => .tApp (substTmTy X U t) (substTy X U T)
 
-@[simp]
 instance : Subst Ty Tm where
   subst := substTmTy
 

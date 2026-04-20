@@ -33,20 +33,12 @@ example : ¬ LcTm (ƛ ($T "A") => #v 1) := by
     specialize h₂ x hx
     cases h₂
 
+@[aesop safe forward]
 theorem openTm_neq_id {k j : ℕ} {t u v : Tm} (hNeq : k ≠ j) (h : t⟪j, v⟫⟪k, u⟫ = t⟪j, v⟫) :
     t⟪k, u⟫ = t := by
-  induction t generalizing k j with
-  | bvar idx =>
-    simp at h
-    by_cases idx = j
-    · aesop
-    · aesop
-  | fvar name => simp
-  | app t₁ t₂ t₁_ih t₂_ih => aesop
-  | tApp t T ih => aesop
-  | lam T t ih => aesop
-  | tLam t ih => aesop
+  induction t generalizing k j with aesop
 
+@[aesop safe forward]
 theorem openTm_eq_id {k j : ℕ} {t v : Tm} {U : Ty} (h : t⟪j, U⟫⟪k, v⟫ = t⟪j, U⟫) :
     t⟪k, v⟫ = t := by
   induction t generalizing k j with aesop
@@ -71,31 +63,12 @@ theorem openTm_lcTm_id {u : Tm} (h : LcTm u) (k : ℕ) (v : Tm) :
     have := openTm_eq_id ih
     rw [this]
 
+@[aesop unsafe 70% apply]
 theorem openTm_substTm_comm {t u v : Tm} {X : Name} {k : ℕ} (hu : LcTm u) :
     (t[X ↦ u])⟪k, v[X ↦ u]⟫ = (t⟪k, v⟫)[X ↦ u]:= by
-  induction t generalizing k with
-  | bvar idx =>
-    simp
-    split <;> rfl
-  | fvar name =>
-    simp only [substTm_fvar, beq_iff_eq, openTm_fvar]
-    split
-    · rw [openTm_lcTm_id hu]
-    · simp
-  | app t₁ t₂ t₁_ih t₂_ih =>
-    simp only [substTm_app, openTm_app, Tm.app.injEq]
-    rw [t₁_ih, t₂_ih]
-    simp_all only [and_self]
-  | tApp t T ih =>
-    simp only [substTm_tApp, openTm_tApp, Tm.tApp.injEq, and_true]
-    rw [ih]
-  | lam T t ih =>
-    simp only [substTm_lam, openTm_lam, Tm.lam.injEq, true_and]
-    rw [ih]
-  | tLam t ih =>
-    simp only [substTm_tLam, openTm_tLam, Tm.tLam.injEq]
-    rw [ih]
+  induction t generalizing k with aesop
 
+@[aesop safe forward]
 theorem openTm_substTm_comm_of_neq {t u : Tm} {x y : Name} {k : ℕ}
     (hNeq : y ≠ x) (hu : LcTm u) :
     (t[x ↦ u])⟪k, $vy⟫ = (t⟪k, $vy⟫)[x ↦ u] := by

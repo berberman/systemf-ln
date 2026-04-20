@@ -14,17 +14,12 @@ def openTm (k : ℕ) (u t : Tm) : Tm :=
   | .tApp t T => .tApp (openTm k u t) T
   | .fvar x => .fvar x
 
-@[simp]
 instance : Open Tm Tm where
   «open» := openTm
 
 @[simp]
 lemma openTm_bvar {k : ℕ} {u : Tm} {x : ℕ} :
   (#v x)⟪k, u⟫ = if x == k then u else #v x := rfl
-
-@[simp]
-lemma openTm0_bvar {u : Tm} {x : ℕ} :
-  (#v x)⟪u⟫ = if x == 0 then u else #v x := rfl
 
 @[simp]
 lemma openTm_fvar {k : ℕ} {u : Tm} {X : Name} :
@@ -35,32 +30,16 @@ lemma openTm_lam {k : ℕ} {u : Tm} {T : Ty} {t : Tm} :
   (ƛ T => t)⟪k, u⟫ = (ƛ T => t⟪k + 1, u⟫) := rfl
 
 @[simp]
-lemma openTm0_lam {u : Tm} {T : Ty} {t : Tm} :
-  (ƛ T => t)⟪u⟫ = (ƛ T => t⟪1, u⟫) := rfl
-
-@[simp]
 lemma openTm_app {k : ℕ} {u : Tm} {t₁ t₂ : Tm} :
   (t₁ ◦ t₂)⟪k, u⟫ = (t₁⟪k, u⟫ ◦ t₂⟪k, u⟫) := rfl
-
-@[simp]
-lemma openTm0_app {u : Tm} {t₁ t₂ : Tm} :
-  (t₁ ◦ t₂)⟪u⟫ = (t₁⟪u⟫ ◦ t₂⟪u⟫) := rfl
 
 @[simp]
 lemma openTm_tLam {k : ℕ} {u : Tm} {t : Tm} :
   (Λ' t)⟪k, u⟫ = Λ' (t⟪k, u⟫) := rfl
 
 @[simp]
-lemma openTm0_tLam {u : Tm} {t : Tm} :
-  (Λ' t)⟪u⟫ = Λ' (t⟪u⟫) := rfl
-
-@[simp]
 lemma openTm_tApp {k : ℕ} {u : Tm} {t : Tm} {T : Ty} :
   (t ⦃T⦄)⟪k, u⟫ = (t⟪k, u⟫⦃T⦄) := rfl
-
-@[simp]
-lemma openTm0_tApp {u : Tm} {t : Tm} {T : Ty} :
-  (t ⦃T⦄)⟪u⟫ = (t⟪u⟫⦃T⦄) := rfl
 
 def substTm (X : Name) (u t : Tm) : Tm :=
   match t with
@@ -71,7 +50,6 @@ def substTm (X : Name) (u t : Tm) : Tm :=
   | .tLam t => .tLam (substTm X u t)
   | .tApp t T => .tApp (substTm X u t) T
 
-@[simp]
 instance : Subst Tm Tm where
   subst := substTm
 

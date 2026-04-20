@@ -19,11 +19,9 @@ inductive LcTy : Ty → Prop where
 -/
 example : LcTy (∀' (#T 0 ⇒ #T 0)) := by
   apply LcTy.all ∅
-  intros
-  repeat constructor
+  aesop
 
-
-@[simp]
+@[aesop safe forward]
 theorem openTy_neq_id {k j : ℕ} {T U V : Ty} (hNeq : k ≠ j) (h : T⟪j, V⟫⟪k, U⟫ = T⟪j, V⟫) :
     T⟪k, U⟫ = T := by
   induction T generalizing k j with aesop
@@ -43,7 +41,7 @@ theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
 /-
   Substitution commutes with opening on types
 -/
-@[simp]
+@[aesop unsafe 70% apply]
 theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : LcTy U) :
     (T[X ↦ U])⟪k, ($T Y)⟫ = (T⟪k, $T Y⟫)[X ↦ U] := by
   induction T generalizing k with aesop
@@ -51,17 +49,18 @@ theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : L
 /-
   Substitution preserves locally closedness of types
 -/
+@[aesop safe apply]
 theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T[X ↦ U]) := by
   induction hT with
   | fvar x => aesop
   | arr T₁ T₂ _ _ ih₁ ih₂ => aesop
   | all L T _ ih =>
-    rw [subst_all]
+    simp only [subst_all]
     apply LcTy.all (L ∪ {X} ∪ U.fv)
     intro Y hY
     rw [openTy_substTy_comm] <;> aesop
 
-@[simp]
+@[aesop unsafe 70% apply]
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
     (T⟪k, V⟫)[X ↦ U] = (T[X ↦ U])⟪k, V[X ↦ U]⟫ := by
   induction T generalizing k with aesop
@@ -69,6 +68,7 @@ theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
   If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
   then opening `T` with `U` yields a locally closed type.
 -/
+@[aesop unsafe 50% apply]
 theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U⟫) := by
   cases hT with
   | all L T h =>

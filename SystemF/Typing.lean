@@ -6,6 +6,7 @@ namespace SystemF
 /-
   Typing relation
 -/
+@[aesop unsafe cases 20%]
 inductive HasType : Context → Tm → Ty → Prop where
   | var Γ x T :
     WfContext Γ →
