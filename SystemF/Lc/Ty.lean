@@ -3,10 +3,8 @@ import SystemF.Subst.Ty
 namespace SystemF
 
 
-/-
-  A type `T` is locally closed if its bound indices are properly bound.
+/-- A type `T` is locally closed if its bound indices are properly bound.
   Here we use cofinite quantification.
-  This is equivalent to `LcAtTy 0 T`.
 -/
 @[aesop safe constructors]
 inductive LcTy : Ty → Prop where
@@ -14,9 +12,7 @@ inductive LcTy : Ty → Prop where
   | arr T₁ T₂ : LcTy T₁ → LcTy T₂ → LcTy (T₁ ⇒ T₂)
   | all (L : Finset Name) T : (∀ X ∉ L, LcTy (T⟪$T X⟫)) → LcTy (∀' T)
 
-/-
-  A simple locally closed type example.
--/
+/-- A simple locally closed type example. -/
 example : LcTy (∀' (#T 0 ⇒ #T 0)) := by
   apply LcTy.all ∅
   aesop
@@ -38,17 +34,13 @@ theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
     have := @ih X hX (k + 1) V
     have := @openTy_neq_id (k + 1) 0 T V ($TX) (by aesop) (by assumption)
     rw [this]
-/-
-  Substitution commutes with opening on types
--/
+/-- Substitution commutes with opening on types -/
 @[aesop unsafe 70% apply]
 theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : LcTy U) :
     (T[X ↦ U])⟪k, ($T Y)⟫ = (T⟪k, $T Y⟫)[X ↦ U] := by
   induction T generalizing k with aesop
 
-/-
-  Substitution preserves locally closedness of types
--/
+/-- Substitution preserves locally closedness of types -/
 @[aesop safe apply]
 theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T[X ↦ U]) := by
   induction hT with
@@ -64,8 +56,8 @@ theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
     (T⟪k, V⟫)[X ↦ U] = (T[X ↦ U])⟪k, V[X ↦ U]⟫ := by
   induction T generalizing k with aesop
-/-
-  If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
+
+/-- If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
   then opening `T` with `U` yields a locally closed type.
 -/
 @[aesop unsafe 50% apply]

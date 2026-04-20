@@ -3,9 +3,7 @@ import SystemF.Lc.Tm
 
 namespace SystemF
 
-/-
-  Typing relation
--/
+/-- Typing relation -/
 @[aesop unsafe cases 20%]
 inductive HasType : Context → Tm → Ty → Prop where
   | var Γ x T :
@@ -31,9 +29,7 @@ inductive HasType : Context → Tm → Ty → Prop where
 
 scoped notation Γ " ⊢ " t " ∶ " T => HasType Γ t T
 
-/-
-  Substituting free variable `X` with `U` in a context `Γ` (all types in `Γ` are substituted).
--/
+/-- Substitute free variable `X` with `U` in a context `Γ` (all types in `Γ` are substituted) -/
 def substCtx (X : Name) (U : Ty) (Γ : Context) : Context :=
   Γ.map (fun ⟨y, b⟩ =>
     match b with
@@ -56,9 +52,7 @@ lemma substCtx_cons_tm {Γ : Context} {X : Name} {U : Ty} {y : Name} {T : Ty} :
 lemma substCtx_cons_ty {Γ : Context} {X : Name} {U : Ty} {Y : Name} :
    ((Y, .ty) :: Γ)[X ↦ U] = (Y, .ty) :: Γ[X ↦ U] := rfl
 
-/-
-  Substituting a free variable that is not free in the context does nothing.
--/
+/-- Substituting a free variable that is not free in the context does nothing. -/
 @[simp]
 lemma substCtx_fresh {Γ : Context} {X : Name} {U : Ty} (h : X ∉ Γ.fv) :
     Γ[X ↦ U] = Γ := by
@@ -94,9 +88,7 @@ lemma substCtx_tm_mem {Γ : Context} {x : Name} {T U : Ty} {X : Name}
     (h : (x, .tm T) ∈ Γ) :
     (x, .tm T[X ↦ U]) ∈ Γ[X ↦ U] := by
   exact List.mem_map_of_mem h
-/-
-  Well-typed terms are locally closed terms.
--/
+/-- Well-typed terms are locally closed terms. -/
 lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
   induction h with
   | var Γ x T _ _ _ =>
@@ -115,9 +107,7 @@ lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
   | tApp Γ t T₁ T₂ _ _ _ =>
     constructor <;> assumption
 
-/-
-  Well-typed terms have locally closed types.
--/
+/-- Well-typed terms have locally closed types. -/
 lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
   induction h with
   | var Γ x T _ _ _ => assumption
@@ -137,9 +127,7 @@ lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
     apply openTy_lcTy ih
     assumption
 
-/-
-  Well-typed terms have well-formed contexts.
--/
+/-- Well-typed terms have well-formed contexts. -/
 lemma typing_regularity_wf {Γ t T} (h : Γ ⊢ t ∶ T) : WfContext Γ := by
   induction h with
   | var Γ x T _ _ _ => assumption

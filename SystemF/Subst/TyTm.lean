@@ -4,8 +4,7 @@ import SystemF.Subst.Tm
 namespace SystemF
 
 
-/-
-  Open `t` with `U` at index `k`.
+/-- Open `t` with `U` at index `k`.
   Only handles type variables abstracted by `tLam`.
 -/
 def openTmTy (k : ℕ) (U : Ty) (t : Tm) : Tm :=
@@ -44,9 +43,7 @@ lemma openTmTy_tLam {k : ℕ} {U : Ty} {t : Tm} :
 lemma openTmTy_tApp {k : ℕ} {U : Ty} {t : Tm} {T : Ty} :
   (t ⦃T⦄)⟪k, U⟫ = (t⟪k, U⟫ ⦃T⟪k, U⟫⦄) := rfl
 
-/-
-  Substitute free type variable `X` with `U` in term `t`.
--/
+/-- Substitute free type variable `X` with `U` in term `t`. -/
 def substTmTy (X : Name) (U : Ty) (t : Tm) : Tm :=
   match t with
   | .bvar idx => .bvar idx

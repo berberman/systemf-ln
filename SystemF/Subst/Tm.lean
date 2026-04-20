@@ -2,9 +2,7 @@ import SystemF.Subst.Ty
 
 namespace SystemF
 
-/-
-  Open `t` with `u` at index `k`.
--/
+/-- Open `t` with `u` at index `k`. -/
 def openTm (k : ℕ) (u t : Tm) : Tm :=
   match t with
   | .bvar x => if x == k then u else .bvar x

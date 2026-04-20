@@ -5,8 +5,7 @@ import SystemF.Semantics
 
 namespace SystemF
 
-/-
-  Inserting a new variable into a well-formed context preserves well-formedness,
+/-- Inserting a new variable into a well-formed context preserves well-formedness,
   as long as the new variable is not free in the existing context.
 -/
 theorem typing_weakening {Γ₁ Γ₂ : Context} {t : Tm} {T : Ty} {x : Name} {b : Binding}
@@ -49,8 +48,7 @@ theorem typing_weakening {Γ₁ Γ₂ : Context} {t : Tm} {T : Ty} {x : Name} {b
     · assumption
 
 
-/-
-  For `x : T` in `Γ`, substituting free variable `X` with `U` in `Γ`
+/-- For `x : T` in `Γ`, substituting free variable `X` with `U` in `Γ`
   yields `(x, T[X ↦ U])` in `Γ[X ↦ U]`.
 -/
 theorem substCtx_lookup {Γ : Context} {x : Name} {T U : Ty} {X : Name}
@@ -72,6 +70,7 @@ theorem substCtx_lookup {Γ : Context} {x : Name} {T U : Ty} {X : Name}
         and_false, or_true]
       | tm T => simp_all only [substCtx_cons_tm, List.mem_cons, Prod.mk.injEq, Binding.tm.injEq,
         or_true]
+
 @[simp]
 lemma substCtx_dom {Γ : Context} {X : Name} {U : Ty} :
     (Γ[X ↦ U]).dom = Γ.dom := by
@@ -101,9 +100,7 @@ lemma substCtx_wf {Γ : Context} {X : Name} {U : Ty}
       assumption
     · exact substTy_lcTy hLc hU
 
-/-
-  Substitution lemma for types
--/
+/-- Substitution lemma for types -/
 theorem typing_subst_ty {Γ₁ Γ₂ : Context} {t : Tm} {T U : Ty} {X : Name}
     (hTyping : (Γ₁ ++ (X, .ty) :: Γ₂) ⊢ t ∶ T)
     (hLcTy : LcTy U) :
@@ -165,6 +162,7 @@ theorem typing_subst_ty {Γ₁ Γ₂ : Context} {t : Tm} {T U : Ty} {X : Name}
     · aesop
     · apply substTy_lcTy <;> assumption
 
+/-- Substitution lemma for terms -/
 theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
     (hTyping : (Γ₁ ++ (x, .tm U) :: Γ₂) ⊢ t ∶ T)
     (hSubstTyping : (Γ₁ ++ Γ₂) ⊢ u ∶ U) :

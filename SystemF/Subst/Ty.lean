@@ -3,9 +3,7 @@ import SystemF.Subst.Class
 namespace SystemF
 
 
-/-
-  Open `T` with `U` at index `k`.
--/
+/-- Open `T` with `U` at index `k`. -/
 def openTy (k : ℕ) (U T : Ty) : Ty :=
   match T with
   | .bvar x => if x == k then U else .bvar x
@@ -33,9 +31,7 @@ lemma openTy_all {k : ℕ} {U T : Ty} :
   (∀' T)⟪k, U⟫ = ∀' (T⟪k + 1, U⟫) := rfl
 
 
-/-
-  Substitute free type variable `X` with `U` in `T`
--/
+/-- Substitute free type variable `X` with `U` in `T` -/
 def substTy (X : Name) (U T : Ty) : Ty :=
   match T with
   | .bvar x => Ty.bvar x
@@ -58,8 +54,7 @@ instance : Subst Ty Ty where
 @[simp] lemma subst_all (X : Name) (U T : Ty) :
   (Ty.all T)[X ↦ U] = Ty.all (T[X ↦ U]) := rfl
 
-/-
-  Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
+/-- Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
   opening `T` with `U`, as long as `X` is not free in `T`.
 -/
 @[simp]
@@ -67,21 +62,17 @@ theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
   induction T generalizing k with aesop
 
-/-
-  Substituting a free variable that is not free in the type does nothing.
--/
+/-- Substituting a free variable that is not free in the type does nothing. -/
 @[simp]
 lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
     T[X ↦ U] = T := by induction T with aesop
 
-/-
-  Opening a type with a free variable preserves the size of the type.
-  Used to show termination.
+/-- Opening a type with a free variable preserves the size of the type.
+  Useful for showing termination.
 -/
 @[simp]
 lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
   induction T generalizing k with aesop
-
 
 end SystemF

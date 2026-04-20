@@ -19,15 +19,11 @@ def Binding.fv : Binding → Finset Name
 
 abbrev Context := List (Name × Binding)
 
-/-
-  The free type variables in a context
--/
+/-- Free type variables in a context -/
 def Context.fv (Γ : Context) : Finset Name :=
   Γ.foldr (fun ⟨_, b⟩ acc => acc ∪ b.fv) ∅
 
-/-
-  All variables in context
--/
+/-- All variables in context -/
 def Context.dom (Γ : Context) : Finset Name :=
   Γ.foldr (fun ⟨x, _⟩ acc => acc ∪ {x}) ∅
 
@@ -62,9 +58,7 @@ lemma mem_dom_of_mem {Γ : Context} {x : Name} {b : Binding} (h : (x, b) ∈ Γ)
     rcases head with ⟨y, v⟩
     cases v with aesop
 
-/-
-  Well-formed contexts: all types are locally closed and all variables are distinct.
--/
+/-- In well-formed contexts all types are locally closed and all variables are distinct. -/
 inductive WfContext : Context → Prop where
   | nil : WfContext []
   | consTm Γ x T : WfContext Γ → x ∉ Γ.dom → LcTy T → WfContext ((x, .tm T) :: Γ)
