@@ -75,7 +75,6 @@ theorem valRel_candidate {T : Ty} {ρ : SemEnv} (hValid : ρ.IsValid) :
     simp only [ValRel]
     constructor <;> aesop
 
-@[simp]
 lemma expRel_of_valRel {T : Ty} {ρ : SemEnv} {v₁ v₂ : Tm}
     (hValid : ρ.IsValid)
     (hValRel : ValRel T ρ v₁ v₂) : ExpRel T ρ v₁ v₂ := by
@@ -91,7 +90,6 @@ lemma expRel_of_valRel {T : Ty} {ρ : SemEnv} {v₁ v₂ : Tm}
         · rfl
         · use v₂
 
-@[simp]
 lemma expRel_step_back_left {T : Ty} {ρ : SemEnv} {t₁ t₁' t₂ : Tm}
     (hLc_t₁ : LcTm t₁) (hStep : t₁ ⟶ t₁') (hExp : ExpRel T ρ t₁' t₂) : ExpRel T ρ t₁ t₂ := by
   simp only [ExpRel, exists_and_left] at *
@@ -103,7 +101,6 @@ lemma expRel_step_back_left {T : Ty} {ρ : SemEnv} {t₁ t₁' t₂ : Tm}
     assumption
   · use v₂
 
-@[simp]
 lemma expRel_step_back_right {T : Ty} {ρ : SemEnv} {t₂ t₂' t₁ : Tm}
     (hLc_t₂ : LcTm t₂) (hStep : t₂ ⟶ t₂') (hExp : ExpRel T ρ t₁ t₂') : ExpRel T ρ t₁ t₂ := by
   simp only [ExpRel, exists_and_left] at *
@@ -118,7 +115,6 @@ lemma expRel_step_back_right {T : Ty} {ρ : SemEnv} {t₂ t₂' t₁ : Tm}
       assumption
     · assumption
 
-@[simp]
 lemma expRel_app {T₁ T₂ : Ty} {ρ : SemEnv} {t₁ t₂ u₁ u₂ : Tm}
     (ht : ExpRel (T₁ ⇒ T₂) ρ t₁ t₂)
     (hu : ExpRel T₁ ρ u₁ u₂) :
@@ -151,5 +147,42 @@ lemma expRel_app {T₁ T₂ : Ty} {ρ : SemEnv} {t₁ t₂ u₁ u₂ : Tm}
             · exact multi_app₂ hEval_u₂ hv_t₂
             · exact hEval_final₂
         · exact hVal_final
+
+lemma expRel_lam {T₁ T₂ : Ty} {ρ : SemEnv} {t₁ t₂ : Tm}
+    (hLc_t₁ : LcTm (ƛ T₁ => t₁))
+    (hLc_t₂ : LcTm (ƛ T₁ => t₂))
+    (hValid : ρ.IsValid)
+    (hBody : ∀ v₁ v₂, ValRel T₁ ρ v₁ v₂ → ExpRel T₂ ρ (t₁⟪v₁⟫) (t₂⟪v₂⟫)) :
+    ExpRel (T₁ ⇒ T₂) ρ (ƛ T₁ => t₁) (ƛ T₁ => t₂) := by
+  simp only [ExpRel, exists_and_left]
+  refine ⟨hLc_t₁, hLc_t₂, ?_⟩
+  use (ƛ T₁ => t₁)
+  constructor
+  · rfl
+  · use (ƛ T₁ => t₂)
+    constructor
+    · rfl
+    · simp only [ValRel, Tm.lam.injEq, true_and, exists_eq']
+      constructor
+      · constructor
+      · constructor
+        · constructor
+        · constructor
+          · assumption
+          · constructor
+            · assumption
+            · intro arg₁ arg₂ hVal
+              have hLc_arg₁ := valRel_candidate hValid |>.lc_left hVal
+              have hVal_arg₁ := valRel_candidate hValid |>.val_left hVal
+              have hLc_arg₂ := valRel_candidate hValid |>.lc_right hVal
+              have hVal_arg₂ := valRel_candidate hValid |>.val_right hVal
+              apply expRel_step_back_left
+              · constructor <;> assumption
+              · exact SmallStep.appLam _ _ _ hLc_t₁ hVal_arg₁
+              · apply expRel_step_back_right
+                · constructor <;> assumption
+                · exact SmallStep.appLam _ _ _ hLc_t₂ hVal_arg₂
+                apply hBody
+                assumption
 
 end SystemF
