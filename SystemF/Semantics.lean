@@ -42,4 +42,22 @@ lemma canonical_forms_all {v : Tm} {T : Ty}
     (hTyping : ∅ ⊢ v ∶ ∀' T) (hVal : Value v) :
     ∃ t, v = (Λ' t) := by aesop
 
+lemma multi_app₁ {t₁ t₁' t₂ : Tm} (h : t₁ ⟶* t₁') (hLc : LcTm t₂) :
+    (t₁ ◦ t₂) ⟶* (t₁' ◦ t₂) := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (SmallStep.app₁ _ _ _ hLc hStep)
+
+lemma multi_app₂ {v t₂ t₂' : Tm} (h : t₂ ⟶* t₂') (hVal : Value v) :
+    (v ◦ t₂) ⟶* (v ◦ t₂') := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (SmallStep.app₂ _ _ _ hVal hStep)
+
+lemma multi_tApp {t t' : Tm} {T : Ty} (h : t ⟶* t') (hLc : LcTy T) :
+    (t⦃T⦄) ⟶* (t'⦃T⦄) := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (SmallStep.tApp _ _ _ hLc hStep)
+
 end SystemF
