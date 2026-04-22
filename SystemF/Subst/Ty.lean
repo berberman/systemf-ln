@@ -75,4 +75,10 @@ lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
   induction T generalizing k with aesop
 
+def Ty.psubst (δ : Name → Ty) : Ty → Ty
+  | .bvar i => .bvar i
+  | .fvar X => δ X
+  | .arr T₁ T₂ => .arr (T₁.psubst δ) (T₂.psubst δ)
+  | .all T => .all (T.psubst δ)
+
 end SystemF

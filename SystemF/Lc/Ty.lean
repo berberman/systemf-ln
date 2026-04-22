@@ -70,4 +70,44 @@ theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U�
     rw [←substTy_openTy_var (X := X) (by aesop)]
     apply this
 
+
+theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : Name → Ty}
+    (hX : X ∉ T.fv)
+    (hδ : ∀ Y, LcTy (δ Y)) :
+    (T.psubst δ)⟪k, $TX⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X (.fvar X)) := by
+  induction T generalizing X k with
+  | bvar idx =>
+    simp [Ty.psubst]
+    by_cases idx_eq : idx = k <;> simp [Ty.psubst, idx_eq]
+  | fvar Y =>
+    have : Y ≠ X := by aesop
+    simp only [Ty.psubst, openTy_fvar, ne_eq, this, not_false_eq_true, Function.update_of_ne]
+    rw [openTy_lcTy_id]
+    apply hδ
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp [Ty.psubst]
+    aesop
+  | all T ih =>
+    simp only [Ty.psubst, openTy_all, Ty.all.injEq]
+    apply ih
+    aesop
+
+lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : Name → Ty}
+    (hδ : ∀ X, LcTy (δ X)) : LcTy (T.psubst δ) := by
+  induction hLc generalizing δ with
+  | fvar name => exact hδ name
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    constructor <;> aesop
+  | all L T _ ih =>
+    apply LcTy.all (L ∪ T.fv)
+    intro X hX
+    rw [psubst_openTy_comm (by aesop) hδ]
+    · apply ih
+      · aesop
+      · intro Y
+        by_cases hY : Y = X
+        · aesop
+        · aesop
+
+
 end SystemF

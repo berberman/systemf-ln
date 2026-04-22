@@ -84,4 +84,12 @@ theorem substTm_openTm_var {t u : Tm} {x : Name} {k : ℕ} (h : x ∉ t.fv) :
     (t⟪k, $v x⟫)[x ↦ u] = t⟪k, u⟫ := by
   induction t generalizing k with aesop
 
+def Tm.psubst (γ : Name → Tm) (δ : Name → Ty) : Tm → Tm
+  | .bvar i => .bvar i
+  | .fvar x => γ x
+  | .app t₁ t₂ => .app (t₁.psubst γ δ) (t₂.psubst γ δ)
+  | .lam T t => .lam (T.psubst δ) (t.psubst γ δ)
+  | .tApp t T => .tApp (t.psubst γ δ) (T.psubst δ)
+  | .tLam t => .tLam (t.psubst γ δ)
+
 end SystemF

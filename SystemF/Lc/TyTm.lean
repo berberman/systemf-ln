@@ -45,4 +45,79 @@ theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcT
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
   induction t generalizing k with aesop
 
+theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
+    (hX : X ∉ t.fvTy)
+    (hγ : ∀ x, LcTm (γ x))
+    (hδ : ∀ Y, LcTy (δ Y)) :
+    (t.psubst γ δ)⟪k, $TX⟫ = (t⟪k, $TX⟫).psubst γ (Function.update δ X ($TX)) := by
+  induction t generalizing X k with
+  | bvar idx => rfl
+  | fvar x =>
+    simp only [Tm.psubst, openTmTy_fvar]
+    rw [openTmTy_lcTm_id]
+    apply hγ
+  | app t₁ t₂ t₁_ih t₂_ih =>
+    simp [Tm.psubst]
+    aesop
+  | tApp t T ih =>
+    simp only [Tm.psubst, openTmTy_tApp, Tm.tApp.injEq]
+    constructor
+    · apply ih
+      aesop
+    · rw [psubst_openTy_comm]
+      · aesop
+      · assumption
+  | lam T t ih =>
+    simp only [Tm.psubst, openTmTy_lam, Tm.lam.injEq]
+    constructor
+    · rw [psubst_openTy_comm]
+      · aesop
+      · assumption
+    · apply ih
+      aesop
+  | tLam t ih =>
+    simp only [Tm.psubst, openTmTy_tLam, Tm.tLam.injEq]
+    apply ih
+    aesop
+
+
+lemma psubst_lcTm {t : Tm} (ht : LcTm t)
+    {γ : Name → Tm} {δ : Name → Ty}
+    (hγ : ∀ x, LcTm (γ x))
+    (hδ : ∀ X, LcTy (δ X)) :
+    LcTm (t.psubst γ δ) := by
+  induction ht generalizing γ δ with
+  | fvar x => exact hγ x
+  | app t₁ t₂ _ _ _ _ => constructor <;> aesop
+  | lam L T t _ _ ih =>
+    apply LcTm.lam (L ∪ t.fv)
+    · apply psubst_lcTy <;> assumption
+    · intro x hx
+      rw [psubst_openTm_comm (by aesop) hγ]
+      apply ih
+      · aesop
+      · intro y
+        by_cases hy : y = x
+        · subst hy
+          simp
+          constructor
+        · aesop
+      · assumption
+  | tApp t T _ _ _ =>
+    simp only [Tm.psubst]
+    constructor
+    · aesop
+    · apply psubst_lcTy <;> assumption
+  | tLam L t _ ih =>
+    simp only [Tm.psubst]
+    apply LcTm.tLam (L ∪ t.fvTy)
+    intro X hX
+    rw [psubst_openTmTy_comm (by aesop) hγ hδ]
+    apply ih
+    · aesop
+    · intro y
+      by_cases hY : y = X <;> aesop
+    · intro Y
+      by_cases hy : Y = X <;> aesop
+
 end SystemF
