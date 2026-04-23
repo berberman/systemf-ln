@@ -411,12 +411,111 @@ lemma expRel_openTy_comm {T : Ty} {X : Name} {ρ : SemEnv} {R : TmRel} {t₁ t�
     exact valRel_openTy_comm_at hX (by simp) hLcT
   rw [expRel_eq_of_valRel_eq h_val]
 
+lemma valRel_bound_irr_at {T : Ty} {k : ℕ} {ρ : SemEnv} {R : TmRel}
+    (hk : k ≤ ρ.bound.length)
+    (hLc : T.LcAt k) :
+    ValRel T { ρ with bound := ρ.bound.insertIdx k R } = ValRel T ρ := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp [Ty.LcAt] at hLc
+    simp only [ValRel]
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · have : idx < ρ.bound.length := by grind
+      grind
+    · aesop
+    · grind
+  | fvar name => simp [ValRel]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp only [ValRel]
+    funext v₁ v₂
+    congr
+    simp only [Ty.LcAt] at hLc
+    rcases hLc with ⟨hLcT₁, hLcT₂⟩
+    rw [T₁_ih hk hLcT₁]
+    have := T₂_ih hk hLcT₂
+    rw [expRel_eq_of_valRel_eq this]
+  | all T ih =>
+    simp only [ValRel]
+    funext v₁ v₂
+    congr
+    simp only [Ty.LcAt] at hLc
+    have h_body : ∀ R_arg,
+        ExpRel T { bound := R_arg :: ρ.bound.insertIdx k R, free := ρ.free } =
+        ExpRel T { bound := R_arg :: ρ.bound, free := ρ.free } := by
+      intro R_arg
+      let ρ' : SemEnv := { bound := R_arg :: ρ.bound, free := ρ.free }
+      have hk' : k + 1 ≤ ρ'.bound.length := by aesop
+      have := ih (ρ := ρ') hk' hLc
+      apply expRel_eq_of_valRel_eq
+      assumption
+    simp [h_body]
+
+lemma valRel_bound_irr {T : Ty} {ρ : SemEnv} {R : TmRel} (hLc : T.LcAt 0) :
+    ValRel T { ρ with bound := R :: ρ.bound } = ValRel T ρ := by
+  rw [←List.insertIdx_cons]
+  exact valRel_bound_irr_at (by simp) hLc
+
+lemma valRel_openTy_bound_at {T T_arg : Ty} {k : ℕ} {ρ : SemEnv}
+    (hk : k ≤ ρ.bound.length)
+    (hLcT : T.LcAt (k + 1))
+    (hLcArg : T_arg.LcAt 0) :
+    ValRel T { ρ with bound := ρ.bound.insertIdx k (ValRel T_arg ρ) } =
+    ValRel (T⟪k, T_arg⟫) ρ := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp [Ty.LcAt] at hLcT
+    simp only [ValRel, openTy_bvar, beq_iff_eq]
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · have : idx ≠ k := by grind
+      simp only [this, ↓reduceIte]
+      have hlt' : idx < ρ.bound.length := by grind
+      have hle : idx ≤ ρ.bound.length := by grind
+      have h : (ρ.bound.insertIdx k (ValRel T_arg ρ)).length = ρ.bound.length + 1 := by grind
+      simp only [h, Order.lt_add_one_iff, hle, ↓reduceDIte]
+      rw [List.getElem_insertIdx_of_lt (by assumption) (by grind)]
+      simp [ValRel, hlt']
+    · grind
+    · grind
+  | fvar name => simp [ValRel]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp only [ValRel, openTy_arr]
+    funext v₁ v₂
+    congr
+    simp only [Ty.LcAt] at hLcT
+    rcases hLcT with ⟨hLcT₁, hLcT₂⟩
+    rw [T₁_ih hk hLcT₁]
+    have := T₂_ih hk hLcT₂
+    rw [expRel_eq_of_valRel_eq this]
+  | all T ih =>
+    simp only [ValRel, openTy_all]
+    funext v₁ v₂
+    congr
+    simp only [Ty.LcAt] at hLcT
+    have h_body : ∀ R_arg,
+        ExpRel T { bound := R_arg :: ρ.bound.insertIdx k (ValRel T_arg ρ), free := ρ.free } =
+        ExpRel (T⟪k + 1, T_arg⟫) { bound := R_arg :: ρ.bound, free := ρ.free } := by
+      intro R_arg
+      apply expRel_eq_of_valRel_eq
+      have := valRel_bound_irr_at (ρ := ρ) (R := R_arg) (by simp) hLcArg
+      let ρ' : SemEnv := { bound := R_arg :: ρ.bound, free := ρ.free }
+      have h := ih (k := k + 1) (ρ := ρ') (by aesop) hLcT
+      rw [←this]
+      exact h
+    simp [h_body]
+
 /-- Opening a type syntactically is equivalent to evaluating that type into a `ValRel`
   and pushing it onto the bound environment semantically. -/
-lemma expRel_openTy_bound_comm {T T_arg : Ty} {ρ : SemEnv} {t₁ t₂ : Tm} :
+lemma expRel_openTy_bound_comm {T T_arg : Ty} {ρ : SemEnv} {t₁ t₂ : Tm}
+    (hLcArg : T_arg.LcAt 0)
+    (hLcT : T.LcAt 1) :
     ExpRel T { ρ with bound := ValRel T_arg ρ :: ρ.bound } t₁ t₂ ↔
     ExpRel (T⟪T_arg⟫) ρ t₁ t₂ := by
-  sorry
+  have : ValRel T { ρ with bound := ValRel T_arg ρ :: ρ.bound } =
+      ValRel (T⟪T_arg⟫) ρ := by
+    rw [←List.insertIdx_cons]
+    exact valRel_openTy_bound_at (by aesop) hLcT hLcArg
+  rw [expRel_eq_of_valRel_eq this]
+
 
 theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     {ρ δ₁ δ₂ γ₁ γ₂} (hValid : ρ.IsValid) (hEnv : EnvRel Γ ρ δ₁ δ₂ γ₁ γ₂) :
@@ -610,13 +709,29 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
       rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc] at this
       rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc] at this
       assumption
-  | tApp Γ t T₁ T₂ _ _ ih =>
+  | tApp Γ t T₁ T₂ h _ ih =>
     have hExp_t := ih hValid hEnv
-    have hLc_U₁ : LcTy (T₂.psubst δ₁) := sorry
-    have hLc_U₂ : LcTy (T₂.psubst δ₂) := sorry
+    have hLc_U₁ : LcTy (T₂.psubst δ₁) := by
+      apply psubst_lcTy
+      · assumption
+      · exact hEnv.δ₁_lc
+    have hLc_U₂ : LcTy (T₂.psubst δ₂) := by
+      apply psubst_lcTy
+      · assumption
+      · exact hEnv.δ₂_lc
     have hApp := expRel_tApp (T_arg := T₂) hValid hLc_U₁ hLc_U₂ hExp_t
     rw [expRel_openTy_bound_comm] at hApp
-    exact hApp
+    · exact hApp
+    · exact lcAt_zero_of_lcTy (by assumption)
+    · have := typing_regularity_ty h
+      cases this with
+      | all L T h =>
+        have ⟨X, hX⟩ := exists_fresh_name L
+        have := h X hX
+        have := lcAt_zero_of_lcTy this
+        have := lcAtTy_of_openTy this
+        simp [this]
+
 
 def SingletonRel (t : Tm) : TmRel :=
   fun t₁ t₂ => t₁ = t ∧ t₂ = t ∧ LcTm t ∧ Value t
