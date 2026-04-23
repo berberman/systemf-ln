@@ -45,11 +45,11 @@ theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcT
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
   induction t generalizing k with aesop
 
-theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
+theorem psubst_openTmTy_comm' {t : Tm} {U : Ty} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
     (hX : X ∉ t.fvTy)
     (hγ : ∀ x, LcTm (γ x))
     (hδ : ∀ Y, LcTy (δ Y)) :
-    (t.psubst γ δ)⟪k, $TX⟫ = (t⟪k, $TX⟫).psubst γ (Function.update δ X ($TX)) := by
+    (t.psubst γ δ)⟪k, U⟫ = (t⟪k, $TX⟫).psubst γ (Function.update δ X U) := by
   induction t generalizing X k with
   | bvar idx => rfl
   | fvar x =>
@@ -64,13 +64,13 @@ theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Na
     constructor
     · apply ih
       aesop
-    · rw [psubst_openTy_comm]
+    · rw [psubst_openTy_comm']
       · aesop
       · assumption
   | lam T t ih =>
     simp only [Tm.psubst, openTmTy_lam, Tm.lam.injEq]
     constructor
-    · rw [psubst_openTy_comm]
+    · rw [psubst_openTy_comm']
       · aesop
       · assumption
     · apply ih
@@ -80,6 +80,12 @@ theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Na
     apply ih
     aesop
 
+theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
+    (hX : X ∉ t.fvTy)
+    (hγ : ∀ x, LcTm (γ x))
+    (hδ : ∀ Y, LcTy (δ Y)) :
+    (t.psubst γ δ)⟪k, $TX⟫ = (t⟪k, $TX⟫).psubst γ (Function.update δ X ($TX)) := by
+  apply psubst_openTmTy_comm' hX hγ hδ
 
 lemma psubst_lcTm {t : Tm} (ht : LcTm t)
     {γ : Name → Tm} {δ : Name → Ty}

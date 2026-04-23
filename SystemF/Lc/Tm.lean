@@ -75,10 +75,10 @@ theorem openTm_substTm_comm_of_neq {t u : Tm} {x y : Name} {k : ℕ}
   rw [←openTm_substTm_comm hu]
   simp [hNeq]
 
-theorem psubst_openTm_comm {k} {t : Tm} {x : Name} {γ : Name → Tm} {δ : Name → Ty}
+theorem psubst_openTm_comm' {k} {t v : Tm} {x : Name} {γ : Name → Tm} {δ : Name → Ty}
     (hx : x ∉ t.fv)
     (hγ : ∀ y, LcTm (γ y)) :
-    (t.psubst γ δ)⟪k, $vx⟫ = (t⟪k, $vx⟫).psubst (Function.update γ x (.fvar x)) δ := by
+    (t.psubst γ δ)⟪k, v⟫ = (t⟪k, $v x⟫).psubst (Function.update γ x v) δ := by
   induction t generalizing x k with
   | bvar idx =>
     simp [Tm.psubst]
@@ -101,5 +101,10 @@ theorem psubst_openTm_comm {k} {t : Tm} {x : Name} {γ : Name → Tm} {δ : Name
     simp [Tm.psubst]
     aesop
 
+theorem psubst_openTm_comm {k} {t : Tm} {x : Name} {γ : Name → Tm} {δ : Name → Ty}
+    (hx : x ∉ t.fv)
+    (hγ : ∀ y, LcTm (γ y)) :
+    (t.psubst γ δ)⟪k, $v x⟫ = (t⟪k, $v x⟫).psubst (Function.update γ x ($v x)) δ := by
+  apply psubst_openTm_comm' hx hγ
 
 end SystemF

@@ -71,10 +71,12 @@ theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U�
     apply this
 
 
-theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : Name → Ty}
+
+
+theorem psubst_openTy_comm' {k} {T U : Ty} {X : Name} {δ : Name → Ty}
     (hX : X ∉ T.fv)
     (hδ : ∀ Y, LcTy (δ Y)) :
-    (T.psubst δ)⟪k, $TX⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X (.fvar X)) := by
+    (T.psubst δ)⟪k, U⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X U) := by
   induction T generalizing X k with
   | bvar idx =>
     simp [Ty.psubst]
@@ -91,6 +93,12 @@ theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : Name → Ty}
     simp only [Ty.psubst, openTy_all, Ty.all.injEq]
     apply ih
     aesop
+
+theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : Name → Ty}
+    (hX : X ∉ T.fv)
+    (hδ : ∀ Y, LcTy (δ Y)) :
+    (T.psubst δ)⟪k, $TX⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X ($T X)) := by
+  apply psubst_openTy_comm' hX hδ
 
 lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : Name → Ty}
     (hδ : ∀ X, LcTy (δ X)) : LcTy (T.psubst δ) := by

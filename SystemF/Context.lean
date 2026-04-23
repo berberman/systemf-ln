@@ -58,6 +58,18 @@ lemma mem_dom_of_mem {Γ : Context} {x : Name} {b : Binding} (h : (x, b) ∈ Γ)
     rcases head with ⟨y, v⟩
     cases v with aesop
 
+lemma subset_fv_of_mem_tm {Γ : Context} {x : Name} {T : Ty} (h : (x, .tm T) ∈ Γ) : T.fv ⊆ Γ.fv := by
+  induction Γ with
+  | nil => contradiction
+  | cons head tail ih =>
+    rcases head with ⟨y, v⟩
+    cases h with
+    | head as => simp [Context.fv, Binding.fv]
+    | tail b h' =>
+      have := ih h'
+      simp [Context.fv, Binding.fv] at *
+      grind
+
 /-- In well-formed contexts all types are locally closed and all variables are distinct. -/
 inductive WfContext : Context → Prop where
   | nil : WfContext []
