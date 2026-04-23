@@ -50,8 +50,14 @@ def SemEnv.IsValid (ρ : SemEnv) : Prop :=
   (∀ R ∈ ρ.bound, IsValCandidateRel R) ∧ (∀ X, IsValCandidateRel (ρ.free X))
 
 @[simp]
-theorem false_candidate : IsValCandidateRel (fun _ _ => False) := by
+theorem rel_false_candidate : IsValCandidateRel (fun _ _ => False) := by
   constructor <;> simp
+
+def SemEnv.empty : SemEnv := { bound := [], free := fun _ => fun _ _ => False }
+
+@[simp]
+theorem semEnv_empty_valid : SemEnv.IsValid SemEnv.empty := by
+  constructor <;> simp [SemEnv.empty]
 
 @[simp]
 theorem valRel_candidate {T : Ty} {ρ : SemEnv} (hValid : ρ.IsValid) :
@@ -251,9 +257,24 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ₁ δ₂ : Name → Ty) (γ₁
   γ₁_lc : ∀ x, LcTm (γ₁ x)
   γ₂_lc : ∀ x, LcTm (γ₂ x)
 
+def emptyδ : Name → Ty := fun X => $T X
+def emptyγ : Name → Tm := fun x => $v x
 
-lemma expRel_eq_of_valRel_eq {ρ₁ ρ₂ : SemEnv} {T : Ty} (h : ValRel T ρ₁ = ValRel T ρ₂) :
-    ExpRel T ρ₁ = ExpRel T ρ₂ := by
+@[simp]
+lemma ty_psubst_id (T : Ty) : T.psubst emptyδ = T := by
+  induction T <;> simp [Ty.psubst, emptyδ, *]
+
+@[simp]
+lemma tm_psubst_id (t : Tm) : t.psubst emptyγ emptyδ = t := by
+  induction t <;> simp [Tm.psubst, emptyγ, *]
+
+@[simp]
+theorem envRel_empty : EnvRel [] SemEnv.empty emptyδ emptyδ emptyγ emptyγ := by
+  constructor <;> simp [SemEnv.empty, emptyδ, emptyγ] <;> (intro; constructor)
+
+@[simp]
+lemma expRel_eq_of_valRel_eq {ρ₁ ρ₂ : SemEnv} {T₁ T₂ : Ty} (h : ValRel T₁ ρ₁ = ValRel T₂ ρ₂) :
+    ExpRel T₁ ρ₁ = ExpRel T₂ ρ₂ := by
   funext t₁ t₂
   simp [ExpRel]
   simp [h]
@@ -288,10 +309,107 @@ lemma valRel_free_update_of_not_mem {T : Ty} {X : Name} {ρ : SemEnv} {R : TmRel
       exact expRel_eq_of_valRel_eq this
     simp [this]
 
+def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
+  match T with
+  | .bvar idx => idx < k
+  | .fvar _ => True
+  | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
+  | .all T => T.LcAt (k + 1)
+
+lemma lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
+    (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by
+  induction T generalizing k with
+  | bvar idx =>
+    simp only [openTy_bvar, beq_iff_eq, Ty.LcAt, Order.lt_add_one_iff] at *
+    by_cases hIdx : idx = k
+    · omega
+    · simp [hIdx, Ty.LcAt] at h
+      omega
+  | fvar name => simp [Ty.LcAt]
+  | arr T₁ T₂ T₁_ih T₂_ih => simp [Ty.LcAt] at *; aesop
+  | all T ih => simp [Ty.LcAt] at *; grind
+
+lemma lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
+  induction h with
+  | fvar x => simp [Ty.LcAt]
+  | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; aesop
+  | all L T _ ih =>
+    have ⟨X, hX⟩ := exists_fresh_name L
+    have := ih X hX
+    have := lcAtTy_of_openTy this
+    simp only [zero_add, Ty.LcAt] at *
+    assumption
+
+lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmRel}
+    (hX : X ∉ T.fv)
+    (hk : k ≤ ρ.bound.length)
+    (hLcT : T.LcAt (k + 1)) :
+    ValRel T { ρ with bound := ρ.bound.insertIdx k R } =
+    ValRel (T⟪k, $TX⟫) { ρ with free := Function.update ρ.free X R } := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp only [ValRel, openTy_bvar, beq_iff_eq]
+    simp [Ty.LcAt] at hLcT
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · have : idx ≠ k := by aesop
+      simp only [this, ↓reduceIte]
+      simp only [ValRel]
+      grind
+    · simp [heq]
+      simp [ValRel]
+      have : k < (ρ.bound.insertIdx k R).length := by grind
+      simp [this]
+    · omega
+  | fvar name =>
+    simp only [Ty.fv, Finset.mem_singleton, openTy_fvar] at *
+    have : name ≠ X := by aesop
+    simp [ValRel, Function.update, this]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp only [Ty.LcAt] at hLcT
+    rcases hLcT with ⟨hLcT₁, hLcT₂⟩
+    simp at hX
+    specialize T₁_ih (by aesop) hk hLcT₁
+    specialize T₂_ih (by aesop) hk hLcT₂
+    simp only [ValRel, openTy_arr]
+    funext v₁ v₂
+    congr
+    rw [T₁_ih]
+    have := expRel_eq_of_valRel_eq T₂_ih
+    rw [this]
+  | all T ih =>
+    simp only [Ty.LcAt] at hLcT
+    simp only [Ty.fv] at hX
+    simp only [ValRel, openTy_all]
+    funext v₁ v₂
+    have h_body : ∀ R_arg,
+        ExpRel T { bound := R_arg :: ρ.bound.insertIdx k R, free := ρ.free } =
+        ExpRel (T⟪k + 1, $TX⟫)
+          { bound := R_arg :: ρ.bound, free := Function.update ρ.free X R } := by
+      intro R_arg
+      let ρ' : SemEnv := { bound := R_arg :: ρ.bound, free := ρ.free }
+      have hk' : k + 1 ≤ ρ'.bound.length := by aesop
+      have := ih (ρ := ρ') hX hk' hLcT
+      apply expRel_eq_of_valRel_eq
+      assumption
+    simp [h_body]
+
+
+lemma List.insertIdx_cons {α} (xs : List α) (x : α) : List.insertIdx xs 0 x = x :: xs := rfl
+
+/-- Evaluating an expression under an environment where index 0 is bound to relation `R`
+  is equivalent to opening the type syntactically at index 0 with a fresh name `X`,
+  and evaluating it under an environment where `X` is mapped to `R`.
+-/
 lemma expRel_openTy_comm {T : Ty} {X : Name} {ρ : SemEnv} {R : TmRel} {t₁ t₂ : Tm}
-    (hX : X ∉ T.fv) :
+    (hX : X ∉ T.fv)
+    (hLcT : T.LcAt 1) :
     ExpRel T { ρ with bound := R :: ρ.bound } t₁ t₂ ↔
-    ExpRel (T⟪$TX⟫) { ρ with free := Function.update ρ.free X R } t₁ t₂ := by sorry
+    ExpRel (T⟪$TX⟫) { ρ with free := Function.update ρ.free X R } t₁ t₂ := by
+  have h_val : ValRel T { ρ with bound := R :: ρ.bound } =
+               ValRel (T⟪$TX⟫) { ρ with free := Function.update ρ.free X R } := by
+    rw [←List.insertIdx_cons]
+    exact valRel_openTy_comm_at hX (by simp) hLcT
+  rw [expRel_eq_of_valRel_eq h_val]
 
 /-- Opening a type syntactically is equivalent to evaluating that type into a `ValRel`
   and pushing it onto the bound environment semantically. -/
@@ -299,7 +417,6 @@ lemma expRel_openTy_bound_comm {T T_arg : Ty} {ρ : SemEnv} {t₁ t₂ : Tm} :
     ExpRel T { ρ with bound := ValRel T_arg ρ :: ρ.bound } t₁ t₂ ↔
     ExpRel (T⟪T_arg⟫) ρ t₁ t₂ := by
   sorry
-
 
 theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     {ρ δ₁ δ₂ γ₁ γ₂} (hValid : ρ.IsValid) (hEnv : EnvRel Γ ρ δ₁ δ₂ γ₁ γ₂) :
@@ -484,7 +601,12 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
       apply expRel_step_back_left
       · constructor <;> assumption
       · apply SmallStep.tAppTLam <;> assumption
-      rw [←expRel_openTy_comm (by aesop)] at this
+      have lcAt_t : T.LcAt 1 := by
+        have := h X (by aesop) |> typing_regularity_ty
+        have := lcAt_zero_of_lcTy this
+        have := lcAtTy_of_openTy this
+        simp [this]
+      rw [←expRel_openTy_comm (by aesop) lcAt_t] at this
       rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc] at this
       rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc] at this
       assumption
@@ -495,5 +617,48 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     have hApp := expRel_tApp (T_arg := T₂) hValid hLc_U₁ hLc_U₂ hExp_t
     rw [expRel_openTy_bound_comm] at hApp
     exact hApp
+
+def SingletonRel (t : Tm) : TmRel :=
+  fun t₁ t₂ => t₁ = t ∧ t₂ = t ∧ LcTm t ∧ Value t
+
+theorem singletonRel_candidate (t : Tm) : IsValCandidateRel (SingletonRel t) := by
+  constructor <;> simp [SingletonRel] <;> aesop
+
+example : ∀ f, (∅ ⊢ f ∶ ∀' (#T0 ⇒ #T0)) →
+    ∀ U u, LcTy U → LcTm u → Value u →
+    f⦃U⦄ ◦ u ⟶* u := by
+  intro f hTy U u hLcU hLcu hValu
+  have hExp_f := fundamental hTy semEnv_empty_valid envRel_empty
+  simp only [tm_psubst_id, ExpRel, exists_and_left, and_self_left] at hExp_f
+  rcases hExp_f with ⟨_, v₁, hEval_v₁, _, _, hVal_f⟩
+  simp only [ValRel] at hVal_f
+  rcases hVal_f with ⟨_, _, _, _, ⟨body₁, rfl⟩, _, f_all⟩
+  have h_inst := f_all (SingletonRel u) U U (singletonRel_candidate u) hLcU hLcU
+  simp only [ExpRel, exists_and_left] at h_inst
+  rcases h_inst with ⟨_, _, v_final₁, hEval_final₁, _, _, hVal_arr⟩
+  simp only [ValRel, List.length_cons, lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le,
+    ↓reduceDIte, List.getElem_cons_zero] at hVal_arr
+  rcases hVal_arr with ⟨_, _, _, _, ⟨A₁, ⟨body_final₁, rfl⟩⟩, _, f_arr⟩
+  have h_u_rel : SingletonRel u u u := by
+    simp only [SingletonRel, true_and]
+    constructor <;> assumption
+  have h_app := f_arr u u h_u_rel
+  simp only [ExpRel, exists_and_left] at h_app
+  rcases h_app with ⟨_, _, v_app_final₁, hEval_app_final₁, _, _, hVal_final⟩
+  simp only [ValRel, List.length_cons, lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le,
+    ↓reduceDIte, List.getElem_cons_zero, SingletonRel] at hVal_final
+  have : v_app_final₁ = u := by simp [hVal_final]
+  subst this
+  apply Relation.ReflTransGen.trans
+  · apply multi_app₁
+    · apply multi_tApp
+      · exact hEval_v₁
+      · assumption
+    · assumption
+  · apply Relation.ReflTransGen.trans
+    · apply multi_app₁
+      · exact hEval_final₁
+      · assumption
+    · assumption
 
 end SystemF
