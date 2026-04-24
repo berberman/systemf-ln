@@ -17,8 +17,7 @@ structure SemEnv where
 mutual
 
 /-- `ℰ[T]`: two terms are related if they can both evaluate to
-  values that are related by the value relation.
-  Here `VRel` is parameterized to avoid mutual recursion. -/
+  values that are related by the value relation. -/
 def ExpRel (T : Ty) (ρ : SemEnv) : TmRel :=
   fun t₁ t₂ =>
     LcTm t₁ ∧ LcTm t₂ ∧
@@ -775,5 +774,22 @@ example : ∀ f, (∅ ⊢ f ∶ ∀' (#T0 ⇒ #T0)) →
       · exact hEval_final₁
       · assumption
     · assumption
+
+example : ∀ f, (∅ ⊢ f ∶ ∀' #T0) → False := by
+  intro f hTy
+  have hExp_f := fundamental hTy semEnv_empty_valid envRel_empty
+  simp only [tm_psubst_id, ExpRel, exists_and_left, and_self_left] at hExp_f
+  rcases hExp_f with ⟨_, v₁, hEval_v₁, _, _, hVal_f⟩
+  simp only [ValRel] at hVal_f
+  rcases hVal_f with ⟨_, _, _, _, ⟨body₁, rfl⟩, _, f_all⟩
+  -- A dummy closed type
+  let T_dummy : Ty := $T"Dummy"
+  have hLc_dummy: LcTy T_dummy := envRel_empty.δ₁_lc _
+  -- Instantiate with empty relation
+  have h_inst := f_all (fun _ _ => False) T_dummy T_dummy (by simp) hLc_dummy hLc_dummy
+  simp only [ExpRel, exists_and_left] at h_inst
+  rcases h_inst with ⟨_, _, v_final₁, hEval_final₁, v_final₂, _, hVal_empty⟩
+  -- Here `hVal_empty : 𝒱[#0]` says `v_final₁` and `v_final₂` are related, which is a contradiction!
+  simp [ValRel] at hVal_empty
 
 end SystemF
