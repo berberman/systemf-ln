@@ -5,7 +5,9 @@ import SystemF.Typing
 
 import Mathlib.Logic.Relation
 
-namespace SystemF
+namespace SystemF.CBV
+
+open Notation
 
 @[aesop safe cases]
 inductive Value : Tm → Prop where
@@ -20,8 +22,8 @@ inductive SmallStep : Tm → Tm → Prop where
   | appLam t T v : LcTm (ƛ T => t) → Value v → SmallStep ((ƛ T => t) ◦ v) (t⟪v⟫)
   | tAppTLam t T : LcTm (Λ' t) → LcTy T → SmallStep ((Λ' t)⦃T⦄) (t⟪T⟫)
 
-infix:50 " ⟶ " => SmallStep
-infix:50 " ⟶* " => Relation.ReflTransGen SmallStep
+scoped infix:50 " ⟶ " => SmallStep
+scoped infix:50 " ⟶* " => Relation.ReflTransGen SmallStep
 
 @[aesop safe forward]
 lemma value_no_step {t t' : Tm} (h : Value t) (hStep : t ⟶ t') : False := by
@@ -60,4 +62,4 @@ lemma multi_tApp {t t' : Tm} {T : Ty} (h : t ⟶* t') (hLc : LcTy T) :
   | refl => rfl
   | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (SmallStep.tApp _ _ _ hLc hStep)
 
-end SystemF
+end SystemF.CBV

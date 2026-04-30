@@ -1,11 +1,10 @@
 import SystemF.Syntax
-import SystemF.Subst.Ty
-import SystemF.Subst.TyTm
-import SystemF.Subst.Tm
-import SystemF.Lc.Ty
-import SystemF.Lc.Tm
-import SystemF.Lc.TyTm
+import SystemF.Syntax.Named
+import SystemF.Subst
+import SystemF.Lc
 import SystemF.Context
 import SystemF.Typing
-import SystemF.Metatheory
 import SystemF.Examples
+import SystemF.CBV.Semantics
+import SystemF.CBV.Safety
+import SystemF.CBV.Parametricity

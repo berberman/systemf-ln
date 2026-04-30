@@ -4,6 +4,7 @@ import SystemF.Subst.TyTm
 
 namespace SystemF
 
+open Notation
 
 /-
   Similar to `LcTy`, but for terms.
@@ -23,7 +24,7 @@ example : LcTm (ƛ ($T "A") => $v "y" ◦ #v 0) := by
   intros
   repeat constructor
 
--- Example: `λ x : A -> 1` is not a locally closed term, because `1` is not properly bound
+-- Example: `λ x : A -> #1` is not a locally closed term, because `#1` is out of scope.
 example : ¬ LcTm (ƛ ($T "A") => #v 1) := by
   intro h
   cases h with

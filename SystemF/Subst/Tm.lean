@@ -2,6 +2,9 @@ import SystemF.Subst.Ty
 
 namespace SystemF
 
+open Notation
+
+
 /-- Open `t` with `u` at index `k`. -/
 def openTm (k : ℕ) (u t : Tm) : Tm :=
   match t with

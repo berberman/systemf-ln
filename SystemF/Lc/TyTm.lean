@@ -2,6 +2,8 @@ import SystemF.Lc.Tm
 
 namespace SystemF
 
+open Notation
+
 @[aesop unsafe 70% apply]
 theorem openTmTy_substTmTy_comm {t : Tm} {U : Ty} {X Y : Name} {k : ℕ}
     (hNeq : X ≠ Y) (hU : LcTy U) :

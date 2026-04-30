@@ -59,6 +59,7 @@ def Tm.fvTy : Tm → Finset Name
   | .tLam t => t.fvTy
   | .tApp t T => t.fvTy ∪ T.fv
 
+namespace Notation
 
 scoped infixr:60 " ⇒ " => Ty.arr
 scoped prefix:70 "∀' " => Ty.all
@@ -70,5 +71,7 @@ scoped prefix:80 "Λ' " => Tm.tLam
 scoped prefix:90 "#v" => Tm.bvar
 scoped prefix:90 "$v" => Tm.fvar
 scoped notation:70 t "⦃" A "⦄" => Tm.tApp t A
+
+end Notation
 
 end SystemF

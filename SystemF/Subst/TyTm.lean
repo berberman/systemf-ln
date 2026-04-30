@@ -3,6 +3,7 @@ import SystemF.Subst.Tm
 
 namespace SystemF
 
+open Notation
 
 /-- Open `t` with `U` at index `k`.
   Only handles type variables abstracted by `tLam`.

@@ -1,12 +1,14 @@
-import SystemF.Syntax
+import SystemF.Syntax.Named
 import SystemF.Typing
 
 namespace SystemF.Examples
 
-def Bool := ∀' (#T0 ⇒ #T0 ⇒ #T0)
+open SystemF.NamedNotation
 
-def true := Λ' (ƛ #T0 => ƛ #T0 => #v1)
-def false := Λ' (ƛ #T0 => ƛ #T0 => #v0)
+def Bool := [ty| ∀ X. X → X → X]
+
+def true := [tm| Λ X. λ t : X. λ f : X. t]
+def false := [tm| Λ X. λ t : X. λ f : X. f]
 
 example : ∅ ⊢ true ∶ Bool := by
   apply HasType.tLam ∅

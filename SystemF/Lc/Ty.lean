@@ -2,6 +2,7 @@ import SystemF.Subst.Ty
 
 namespace SystemF
 
+open Notation
 
 /-- A type `T` is locally closed if its bound indices are properly bound.
   Here we use cofinite quantification.

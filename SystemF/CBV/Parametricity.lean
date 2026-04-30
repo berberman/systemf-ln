@@ -1,6 +1,9 @@
-import SystemF.Metatheory
+import SystemF.Typing
+import SystemF.CBV.Semantics
 
-namespace SystemF
+namespace SystemF.CBV
+
+open Notation
 
 abbrev TmRel := Tm → Tm → Prop
 
@@ -308,7 +311,7 @@ lemma valRel_free_update_of_not_mem {T : Ty} {X : Name} {ρ : SemEnv} {R : TmRel
       exact expRel_eq_of_valRel_eq this
     simp [this]
 
-def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
+def _root_.SystemF.Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
   match T with
   | .bvar idx => idx < k
   | .fvar _ => True
@@ -731,12 +734,13 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
         have := lcAtTy_of_openTy this
         simp [this]
 
-
 def SingletonRel (t : Tm) : TmRel :=
   fun t₁ t₂ => t₁ = t ∧ t₂ = t ∧ LcTm t ∧ Value t
 
 theorem singletonRel_candidate (t : Tm) : IsValCandidateRel (SingletonRel t) := by
   constructor <;> simp [SingletonRel] <;> aesop
+
+section
 
 example : ∀ f, (∅ ⊢ f ∶ ∀' (#T0 ⇒ #T0)) →
     ∀ U u, LcTy U → LcTm u → Value u →
@@ -784,7 +788,7 @@ example : ∀ f, (∅ ⊢ f ∶ ∀' #T0) → False := by
   rcases hVal_f with ⟨_, _, _, _, ⟨body₁, rfl⟩, _, f_all⟩
   -- A dummy closed type
   let T_dummy : Ty := $T"Dummy"
-  have hLc_dummy: LcTy T_dummy := envRel_empty.δ₁_lc _
+  have hLc_dummy: LcTy T_dummy := by constructor
   -- Instantiate with empty relation
   have h_inst := f_all (fun _ _ => False) T_dummy T_dummy (by simp) hLc_dummy hLc_dummy
   simp only [ExpRel, exists_and_left] at h_inst
@@ -792,4 +796,6 @@ example : ∀ f, (∅ ⊢ f ∶ ∀' #T0) → False := by
   -- Here `hVal_empty : 𝒱[#0]` says `v_final₁` and `v_final₂` are related, which is a contradiction!
   simp [ValRel] at hVal_empty
 
-end SystemF
+end
+
+end SystemF.CBV

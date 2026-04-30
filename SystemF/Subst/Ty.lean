@@ -2,6 +2,7 @@ import SystemF.Subst.Class
 
 namespace SystemF
 
+open Notation
 
 /-- Open `T` with `U` at index `k`. -/
 def openTy (k : ℕ) (U T : Ty) : Ty :=
