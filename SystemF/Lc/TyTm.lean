@@ -47,7 +47,99 @@ theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcT
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
   induction t generalizing k with aesop
 
-theorem psubst_openTmTy_comm' {t : Tm} {U : Ty} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
+@[aesop safe apply]
+theorem substTm_lcTm {t u : Tm} {x : Name} (ht : LcTm t) (hu : LcTm u) : LcTm (t[x ↦ u]) := by
+  induction ht generalizing x with
+  | fvar y =>
+    simp only [substTm_fvar, beq_iff_eq]
+    split
+    · assumption
+    · constructor
+  | app t₁ t₂ _ _ ih₁ ih₂ =>
+    constructor
+    · apply ih₁
+    · apply ih₂
+  | lam L T t _ _ ih =>
+    simp only [substTm_lam]
+    apply LcTm.lam (L ∪ {x})
+    · assumption
+    · intro y hy
+      rw [openTm_substTm_comm_of_neq (by aesop) hu]
+      apply ih
+      aesop
+  | tApp t T _ _ ih =>
+    simp only [substTm_tApp]
+    constructor
+    · apply ih
+    · assumption
+  | tLam L t _ ih =>
+    simp only [substTm_tLam]
+    apply LcTm.tLam (L ∪ {x})
+    intro Y hY
+    rw [←openTmTy_substTm_comm hu]
+    apply ih
+    aesop
+
+@[aesop safe apply]
+theorem substTmTy_lcTm {t : Tm} {X : Name} {U : Ty} (ht : LcTm t)
+    (hU : LcTy U) : LcTm (t[X ↦ U]) := by
+  induction ht generalizing X with
+  | fvar x => simp; constructor
+  | app t₁ t₂ _ _ ih₁ ih₂ =>
+    constructor
+    · apply ih₁
+    · apply ih₂
+  | lam L T t _ _ ih =>
+    apply LcTm.lam (L ∪ {X})
+    · apply substTy_lcTy
+      · assumption
+      · assumption
+    · intro y hy
+      -- (t⟪k, u⟫)[X ↦ U]
+      -- (substTmTy X U t⟪$vy⟫)
+      change LcTm ((t[X ↦ U])⟪$vy⟫)
+      rw [openTm_substTmTy_comm_fresh (by aesop)]
+      apply ih
+      aesop
+  | tApp t T _ _ ih =>
+    constructor
+    · apply ih
+    · apply substTy_lcTy
+      · assumption
+      · assumption
+  | tLam L t _ ih =>
+    apply LcTm.tLam (L ∪ {X})
+    intro Y hY
+    -- (substTmTy X U t⟪$TY⟫)
+    -- (t⟪$TY⟫)[X ↦ U]
+    change LcTm ((t[X ↦ U])⟪$TY⟫)
+    rw [openTmTy_substTmTy_comm (by aesop) (by aesop)]
+    apply ih
+    aesop
+
+@[aesop safe apply]
+theorem openTm_lcTm {t u : Tm} {T : Ty} (ht : LcTm (ƛ T => t)) (hu : LcTm u) :
+    LcTm (t⟪u⟫) := by
+  cases ht with
+  | lam L T t _ h =>
+    have ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+    rw [←substTm_openTm_var (x:= x) (by aesop)]
+    apply substTm_lcTm
+    · apply h
+      aesop
+    · assumption
+
+@[aesop safe apply]
+theorem openTmTy_lcTm {t : Tm} {U : Ty} (ht : LcTm (Λ' t)) (hU : LcTy U) :
+    LcTm (t⟪U⟫) := by
+  cases ht with
+  | tLam L t h =>
+    have ⟨X, hX⟩ := exists_fresh_name (L ∪ t.fvTy)
+    rw [←substTmTy_openTmTy_var (X := X) (by aesop)]
+    apply substTmTy_lcTm _ hU
+    aesop
+
+theorem psubst_openTmTy_comm' {t : Tm} {U : Ty} {k} {X : Name} {γ : TmSubst} {δ : TySubst}
     (hX : X ∉ t.fvTy)
     (hγ : ∀ x, LcTm (γ x))
     (hδ : ∀ Y, LcTy (δ Y)) :
@@ -82,7 +174,7 @@ theorem psubst_openTmTy_comm' {t : Tm} {U : Ty} {k} {X : Name} {γ : Name → Tm
     apply ih
     aesop
 
-theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Name → Ty}
+theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : TmSubst} {δ : TySubst}
     (hX : X ∉ t.fvTy)
     (hγ : ∀ x, LcTm (γ x))
     (hδ : ∀ Y, LcTy (δ Y)) :
@@ -90,7 +182,7 @@ theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : Name → Tm} {δ : Na
   apply psubst_openTmTy_comm' hX hγ hδ
 
 lemma psubst_lcTm {t : Tm} (ht : LcTm t)
-    {γ : Name → Tm} {δ : Name → Ty}
+    {γ : TmSubst} {δ : TySubst}
     (hγ : ∀ x, LcTm (γ x))
     (hδ : ∀ X, LcTy (δ X)) :
     LcTm (t.psubst γ δ) := by

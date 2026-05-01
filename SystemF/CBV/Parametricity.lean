@@ -259,20 +259,20 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ₁ δ₂ : Name → Ty) (γ₁
   γ₁_lc : ∀ x, LcTm (γ₁ x)
   γ₂_lc : ∀ x, LcTm (γ₂ x)
 
-def emptyδ : Name → Ty := fun X => $T X
-def emptyγ : Name → Tm := fun x => $v x
+@[simp]
+lemma ty_psubst_id (T : Ty) : T.psubst TySubst.empty = T := by
+  induction T <;> simp [Ty.psubst, TySubst.empty, *]
 
 @[simp]
-lemma ty_psubst_id (T : Ty) : T.psubst emptyδ = T := by
-  induction T <;> simp [Ty.psubst, emptyδ, *]
+lemma tm_psubst_id (t : Tm) : t.psubst TmSubst.empty TySubst.empty = t := by
+  induction t <;> simp [Tm.psubst, TmSubst.empty, *]
 
 @[simp]
-lemma tm_psubst_id (t : Tm) : t.psubst emptyγ emptyδ = t := by
-  induction t <;> simp [Tm.psubst, emptyγ, *]
-
-@[simp]
-theorem envRel_empty : EnvRel [] SemEnv.empty emptyδ emptyδ emptyγ emptyγ := by
-  constructor <;> simp [SemEnv.empty, emptyδ, emptyγ] <;> (intro; constructor)
+theorem envRel_empty :
+    EnvRel [] SemEnv.empty
+      TySubst.empty TySubst.empty
+      TmSubst.empty TmSubst.empty := by
+  constructor <;> simp [SemEnv.empty, TySubst.empty, TmSubst.empty] <;> (intro; constructor)
 
 @[simp]
 lemma expRel_eq_of_valRel_eq {ρ₁ ρ₂ : SemEnv} {T₁ T₂ : Ty} (h : ValRel T₁ ρ₁ = ValRel T₂ ρ₂) :

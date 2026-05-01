@@ -1,4 +1,5 @@
 import SystemF.Subst.Ty
+import SystemF.Subst.Parallel
 
 namespace SystemF
 
@@ -95,13 +96,13 @@ theorem psubst_openTy_comm' {k} {T U : Ty} {X : Name} {δ : Name → Ty}
     apply ih
     aesop
 
-theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : Name → Ty}
+theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : TySubst}
     (hX : X ∉ T.fv)
     (hδ : ∀ Y, LcTy (δ Y)) :
     (T.psubst δ)⟪k, $TX⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X ($T X)) := by
   apply psubst_openTy_comm' hX hδ
 
-lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : Name → Ty}
+lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : TySubst}
     (hδ : ∀ X, LcTy (δ X)) : LcTy (T.psubst δ) := by
   induction hLc generalizing δ with
   | fvar name => exact hδ name
