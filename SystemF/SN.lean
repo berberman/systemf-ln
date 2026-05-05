@@ -15,11 +15,13 @@ inductive Neutral : Tm → Prop
 inductive Step : Tm → Tm → Prop
   | app₁ {t₁ t₁' t₂} : Step t₁ t₁' → Step (t₁ ◦ t₂) (t₁' ◦ t₂)
   | app₂ {t₁ t₂ t₂'} : Step t₂ t₂' → Step (t₁ ◦ t₂) (t₁ ◦ t₂')
-  | tApp₁ {t t' T} : Step t t' → Step (t⦃T⦄) (t'⦃T⦄)
-  | tLamBody {t t'} : Step t t' → Step (Λ' t) (Λ' t')
-  | lamBody {T t t'} : Step t t' → Step (ƛ T => t) (ƛ T => t')
+  | tApp₁ {T t t'} : Step t t' → Step (t⦃T⦄) (t'⦃T⦄)
+  | tLamBody {t t'} (L : Finset Name) :
+      (∀ X, X ∉ L → Step (t⟪$TX⟫) (t'⟪$TX⟫)) → Step (Λ' t) (Λ' t')
+  | lamBody {T t t'} (L : Finset Name) :
+      LcTy T → (∀ x ∉ L, Step (t⟪$vx⟫) (t'⟪$vx⟫)) → Step (ƛ T => t) (ƛ T => t')
   | appLam {T t₁ t₂} : LcTm (ƛ T => t₁) → LcTm t₂ → Step ((ƛ T => t₁) ◦ t₂) (t₁⟪t₂⟫)
-  | tAppTLam {t T} : LcTm (Λ' t) → LcTy T → Step ((Λ' t)⦃T⦄) (t⟪T⟫)
+  | tAppTLam {T t} : LcTm (Λ' t) → LcTy T → Step ((Λ' t)⦃T⦄) (t⟪T⟫)
 
 scoped infix:50 " ⟶ " => Step
 scoped infix:50 " ⟶* " => Relation.ReflTransGen Step
@@ -32,36 +34,33 @@ scoped infix:50 " *⟵ " => Relation.ReflTransGen BackwardsStep
 @[simp]
 lemma step_of_backwards_step {t t' : Tm} : (t ⟵ t') = (t' ⟶ t) := rfl
 
-theorem step_openTmTy {t t' : Tm} (hStep : t ⟶ t') (k : ℕ) (U : Ty) :
-    t⟪k, U⟫ ⟶ t'⟪k, U⟫ := by
-  induction hStep generalizing k with
-  | app₁ _ _ => constructor; aesop
-  | app₂ _ _ => constructor; aesop
-  | tApp₁ _ _ => constructor; aesop
-  | tLamBody _ _ => constructor; aesop
-  | lamBody _ _ => constructor; aesop
-  | appLam _ _ =>
-    simp
-    sorry
-  | tAppTLam _ _ => sorry
-
-theorem step_openTm {t t' : Tm} (hStep : t ⟶ t') (k : ℕ) (u : Tm) (hu : LcTm u) :
-    t⟪k, u⟫ ⟶ t'⟪k, u⟫ := by sorry
-
 theorem lcTm_step {t t' : Tm} (h : LcTm t) (hStep : t ⟶ t') : LcTm t' := by
   induction hStep with
   | app₁ _ _ => cases h; constructor <;> aesop
   | app₂ _ _ => cases h; constructor <;> aesop
   | tApp₁ _ _ => cases h; constructor <;> aesop
-  | tLamBody _ ih =>
+  | tLamBody L _ ih =>
     cases h with
-    | tLam L t h =>
-      apply LcTm.tLam L
+    | tLam L' t h =>
+      apply LcTm.tLam (L ∪ L')
       intro X hX
-      sorry
-  | lamBody _ _ => sorry
+      have := h X (by aesop)
+      apply ih X (by aesop) this
+  | lamBody L _ _ ih =>
+    cases h with
+    | lam L' T t _ h =>
+      apply LcTm.lam (L ∪ L')
+      · assumption
+      · intro x hx
+        have := h x (by aesop)
+        apply ih x (by aesop) this
   | appLam _ _ => cases h; aesop
   | tAppTLam _ _ => cases h; aesop
+
+theorem lcTm_multi_step {t t' : Tm} (h : LcTm t) (hSteps : t ⟶* t') : LcTm t' := by
+  induction hSteps with
+  | refl => assumption
+  | tail _ hStep ih => apply lcTm_step ih hStep
 
 /--
 `t` is strongly normalizing if there exists no infinite sequence
@@ -89,15 +88,146 @@ lemma RC.cr₂_multi {S : Set Tm} (hRC : RC S) {t t'} (ht : t ∈ S) (hSteps : t
     · apply ih
     · assumption
 
-lemma multi_step_openTm {t x x' : Tm} (hStep : x ⟶ x') : t⟪x⟫ ⟶* t⟪x'⟫ := by
-  induction hStep with
-  | app₁ _ _ => sorry
-  | app₂ _ _ => sorry
-  | tApp₁ _ _ => sorry
-  | tLamBody _ _ => sorry
-  | lamBody _ _ => sorry
-  | appLam _ _ => sorry
-  | tAppTLam _ _ => sorry
+lemma Step.multi_app₁ {t₁ t₁' t₂ : Tm} (h : t₁ ⟶* t₁') :
+    (t₁ ◦ t₂) ⟶* (t₁' ◦ t₂) := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (Step.app₁ hStep)
+
+lemma Step.multi_app₂ {t₁ t₂ t₂' : Tm} (h : t₂ ⟶* t₂') :
+    (t₁ ◦ t₂) ⟶* (t₁ ◦ t₂') := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (Step.app₂ hStep)
+
+lemma Step.multi_tApp {t t' : Tm} {T : Ty} (h : t ⟶* t') :
+    (t⦃T⦄) ⟶* (t'⦃T⦄) := by
+  induction h with
+  | refl => rfl
+  | tail _ hStep ih => exact Relation.ReflTransGen.tail ih (Step.tApp₁ hStep)
+
+lemma step_substTm {t t' u : Tm} {x : Name}
+    (hStep : t ⟶ t')
+    (hu : LcTm u) :
+    (t[x ↦ u]) ⟶ (t'[x ↦ u]) := by
+  induction hStep generalizing u with
+  | app₁ _ _ => simp only [substTm_app]; apply Step.app₁; aesop
+  | app₂ _ _ => simp only [substTm_app]; apply Step.app₂; aesop
+  | tApp₁ _ _ => simp only [substTm_tApp]; apply Step.tApp₁; aesop
+  | tLamBody L _ ih =>
+    simp only [substTm_tLam]
+    apply Step.tLamBody L
+    intro Y hY
+    simp only [← openTmTy_substTm_comm hu]
+    apply ih
+    · assumption
+    · assumption
+  | lamBody L hT _ ih =>
+    simp only [substTm_lam]
+    apply Step.lamBody (L ∪ {x}) hT
+    intro y hy
+    rw [openTm_substTm_comm_of_neq (by aesop) hu]
+    rw [openTm_substTm_comm_of_neq (by aesop) hu]
+    apply ih
+    · aesop
+    · assumption
+  | appLam h _ =>
+    simp only [substTm_app, substTm_lam]
+    rw [←openTm_substTm_comm hu]
+    apply Step.appLam
+    · rw [←substTm_lam]
+      apply substTm_lcTm
+      · assumption
+      · assumption
+    · apply substTm_lcTm
+      · assumption
+      · assumption
+  | tAppTLam _ _ =>
+    simp only [substTm_tApp, substTm_tLam]
+    rw [openTmTy_substTm_comm hu]
+    apply Step.tAppTLam
+    · rw [←substTm_tLam]
+      apply substTm_lcTm
+      · assumption
+      · assumption
+    · assumption
+
+lemma step_substTmTy {t t' : Tm} {X : Name} {U : Ty}
+    (hStep : t ⟶ t')
+    (hU : LcTy U) :
+    (t[X ↦ U]) ⟶ (t'[X ↦ U]) := by
+  induction hStep generalizing U with
+  | app₁ _ _ => simp only [substTmTy_app]; apply Step.app₁; aesop
+  | app₂ _ _ => simp only [substTmTy_app]; apply Step.app₂; aesop
+  | tApp₁ _ _ => simp only [substTmTy_tApp]; apply Step.tApp₁; aesop
+  | @tLamBody t t' L _ ih =>
+    apply Step.tLamBody (L ∪ {X})
+    intro Y hY
+    -- substTmTy X U t✝⟪$TY⟫ ⟶ substTmTy X U t'✝⟪$TY⟫
+    change (t[X ↦ U])⟪$TY⟫ ⟶ (t'[X ↦ U])⟪$TY⟫
+    rw [openTmTy_substTmTy_comm (by aesop) hU]
+    rw [openTmTy_substTmTy_comm (by aesop) hU]
+    apply ih
+    · aesop
+    · assumption
+  | @lamBody _ t t' L _ _ ih =>
+    apply Step.lamBody (L ∪ {X})
+    · apply substTy_lcTy
+      · assumption
+      · assumption
+    · intro y hy
+      change (t[X ↦ U])⟪$vy⟫ ⟶ (t'[X ↦ U])⟪$vy⟫
+      rw [openTm_substTmTy_comm_fresh (by aesop)]
+      rw [openTm_substTmTy_comm_fresh (by aesop)]
+      apply ih
+      · aesop
+      · assumption
+  | appLam _ _ =>
+    simp only [substTmTy_app, substTmTy_lam]
+    rw [←openTm_substTmTy_comm]
+    apply Step.appLam
+    · rw [←substTmTy_lam]
+      apply substTmTy_lcTm
+      · assumption
+      · assumption
+    · apply substTmTy_lcTm
+      · assumption
+      · assumption
+  | tAppTLam _ _ =>
+    simp only [substTmTy_tApp, substTmTy_tLam]
+    rw [←openTmTy_substTmTy_comm' hU]
+    apply Step.tAppTLam
+    · rw [←substTmTy_tLam]
+      apply substTmTy_lcTm
+      · assumption
+      · assumption
+    · apply substTy_lcTy
+      · assumption
+      · assumption
+
+lemma step_lamBody_openTm
+    {L : Finset Name} {t t' u : Tm}
+    (hBody : ∀ x ∉ L, (t⟪$vx⟫) ⟶ (t'⟪$vx⟫))
+    (hu : LcTm u) :
+    (t⟪u⟫) ⟶ (t'⟪u⟫) := by
+  obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv ∪ t'.fv)
+  have := hBody x (by aesop)
+  have := step_substTm (x := x) this hu
+  rw [substTm_openTm_var (by aesop)] at this
+  rw [substTm_openTm_var (by aesop)] at this
+  exact this
+
+lemma step_tLamBody_openTmTy
+    {L : Finset Name} {t t' : Tm} {U : Ty}
+    (hBody : ∀ X ∉ L, (t⟪$TX⟫) ⟶ (t'⟪$TX⟫))
+    (hU : LcTy U) :
+    (t⟪U⟫) ⟶ (t'⟪U⟫) := by
+  obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ t.fvTy ∪ t'.fvTy)
+  have := hBody X (by aesop)
+  have := step_substTmTy (X := X) this hU
+  rw [substTmTy_openTmTy_var (by aesop)] at this
+  rw [substTmTy_openTmTy_var (by aesop)] at this
+  exact this
 
 lemma fvar_in_RC {X : Name} {S : Set Tm} (h : RC S) : $vX ∈ S := by
   apply h.cr₃
@@ -183,38 +313,46 @@ theorem RC_sn : RC sn_set := by
       have := h t' hStep |>.2
       apply this
 
-def all_set (F : Set Tm → Set Tm) : Set Tm := ⋂ S ∈ { S | RC S }, F S
+lemma sn_of_sn_tApp {t : Tm} {T : Ty} (h : SN (t⦃T⦄)) : SN t := by
+  generalize hEq : t⦃T⦄ = tT at h
+  induction h generalizing t with subst hEq
+  | intro x h ih =>
+    constructor
+    intro t' hStep
+    have : (t⦃T⦄) ⟶ (t'⦃T⦄) := Step.tApp₁ hStep
+    exact ih _ this rfl
+
+def all_set (F : Set Tm → Set Tm) : Set Tm := { t | ∀ S, RC S → ∀ U, LcTy U → t⦃U⦄ ∈ F S }
 
 scoped notation "∀' " F => all_set F
 
 theorem RC_all {F : Set Tm → Set Tm} (hF : ∀ S, RC S → RC (F S)) : RC (∀' F) := by
   constructor
-  · intro t h
-    simp only [all_set, Set.mem_setOf_eq, Set.mem_iInter] at h
-    have hNorm := h sn_set RC_sn
-    have hRC := hF sn_set RC_sn
-    apply hRC.lc
+  · intro t ht
+    let T := $T"dummy"
+    have : LcTy T := by constructor
+    have : t⦃T⦄ ∈ F sn_set := ht _ RC_sn _ this
+    have := hF sn_set RC_sn |>.lc this
+    cases this
     assumption
-  · intro t h
-    simp only [all_set, Set.mem_setOf_eq, Set.mem_iInter] at h
-    have hNorm := h sn_set RC_sn
-    have hRC := hF sn_set RC_sn
-    apply hRC.cr₁
+  · intro t ht
+    let T := $T"dummy"
+    have : LcTy T := by constructor
+    have : t⦃T⦄ ∈ F sn_set := ht _ RC_sn _ this
+    have := hF sn_set RC_sn |>.cr₁ this
+    apply sn_of_sn_tApp
     assumption
-  · intro t t' h hStep
-    simp only [all_set, Set.mem_setOf_eq, Set.mem_iInter] at *
-    intro S hS
-    have := hF S hS
-    apply this.cr₂ _ hStep
-    apply h
-    assumption
-  · intro t hLc hNeu h
-    simp only [all_set, Set.mem_setOf_eq, Set.mem_iInter] at *
-    intro S hS
-    have := hF S hS
-    apply this.cr₃ hLc hNeu
-    intro t' hStep
-    apply h <;> assumption
+  · intro t t' ht hStep S hS U hU
+    exact hF S hS |>.cr₂ (ht S hS U hU) (Step.tApp₁ hStep)
+  · intro t hLc hNeu h S hS U hU
+    apply hF S hS |>.cr₃
+    · constructor <;> assumption
+    · constructor
+    · intro t' hStep
+      cases hStep with
+      | tApp₁ hStep =>
+        exact h _ hStep S hS U hU
+      | tAppTLam _ _ => cases hNeu
 
 structure SemEnv where
   bound : List (Set Tm)
@@ -283,55 +421,106 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ : TySubst) (γ : TmSubst) : Pr
   /-- The term substitution is locally closed -/
   γ_lc : ∀ x, LcTm (γ x)
 
-lemma sn_of_sn_open {t u : Tm} (hu : LcTm u) (h : SN (t⟪u⟫)) : SN t := by
+lemma sn_lam_of_sn_open {A} {t u : Tm} (hLc_u : LcTm u) (h : SN (t⟪u⟫)) : SN (ƛ A => t) := by
   generalize hEq : t⟪u⟫ = tu at h
-  induction h generalizing t u with subst hEq
-  | intro x h ih =>
+  induction h generalizing t with subst hEq
+  | intro tu _ ih =>
     constructor
-    intro t' hStep
-    have : t⟪u⟫ ⟶ t'⟪u⟫ := step_openTm hStep 0 u hu
-    apply ih _ this hu rfl
+    intro v hStep
+    cases hStep with
+    | @lamBody T t t' L hLc_T hStepBody =>
+      have hStepOpen : t⟪u⟫ ⟶ t'⟪u⟫ := step_lamBody_openTm hStepBody hLc_u
+      exact ih _ hStepOpen rfl
 
 lemma RC_app_lam {A t u S}
     (hRC : RC S)
-    (hSN : SN u)
-    (hLc : LcTm u)
+    (hSN_u : SN u)
+    (hLc_u : LcTm u)
     (hLc_lam : LcTm (ƛ A => t))
-    (hBody : t⟪u⟫ ∈ S) :
+    (hBody : ∀ u', u ⟶* u' → t⟪u'⟫ ∈ S) :
     (ƛ A => t) ◦ u ∈ S := by
-  induction hSN generalizing t with
-  | intro x _ ih_x =>
-    have := hRC.cr₁ hBody
-    have := sn_of_sn_open hLc this
-    induction this generalizing x with
-    | intro y _ ih_y =>
+  have h_tu : t⟪u⟫ ∈ S := hBody _ (by rfl)
+  have hSN_lam : SN (ƛ A => t) := sn_lam_of_sn_open hLc_u (hRC.cr₁ h_tu)
+  generalize hEq : (ƛ A => t) = lam at hSN_lam
+  induction hSN_lam generalizing t u with
+  | intro lam _ ih_lam =>
+    induction hSN_u generalizing t with subst hEq
+    | intro u h ih_u =>
       apply hRC.cr₃
       · constructor <;> assumption
       · constructor
       · intro v hStep
         cases hStep with
-        | app₁ h' =>
-          cases h' with
-          | @lamBody _ _ y' h'' =>
-            have : y⟪x⟫ ⟶ y'⟪x⟫ := step_openTm h'' 0 x hLc
-            have : y'⟪x⟫ ∈ S := hRC.cr₂ hBody this
-            have : SN (y'⟪x⟫) := hRC.cr₁ this
-            apply ih_y _ h'' _ _ _ hLc (lcTm_step hLc_lam _)
-            · assumption
-            · assumption
-            · assumption
-            · exact ih_x
-            · constructor
-              assumption
-        | @app₂ _ _ x' h'' =>
-          have : y⟪x⟫ ⟶* y⟪x'⟫ := multi_step_openTm h''
-          have : y⟪x'⟫ ∈ S := hRC.cr₂_multi hBody this
-          apply ih_x
-          · assumption
-          · exact lcTm_step hLc h''
-          · assumption
-          · assumption
-        | appLam _ _ => assumption
+        | app₁ hStepFunc =>
+          cases hStepFunc with
+          | @lamBody _ t t' L hLc_T hStepBody =>
+            have hLc_lam' : LcTm (ƛ A => t') :=
+              lcTm_step hLc_lam (Step.lamBody L hLc_T hStepBody)
+            have hBody' : ∀ u', u ⟶* u' → t'⟪u'⟫ ∈ S := by
+              intro u' hSteps
+              have hLc_u' : LcTm u' := lcTm_multi_step hLc_u hSteps
+              have hStepOpen' : t⟪u'⟫ ⟶ t'⟪u'⟫ := step_lamBody_openTm hStepBody hLc_u'
+              exact hRC.cr₂ (hBody u' hSteps) hStepOpen'
+            have hSN_u : SN u := Acc.intro u h
+            have : (ƛ A => t) ⟶ (ƛ A => t') := Step.lamBody L hLc_T hStepBody
+            exact ih_lam
+              _
+              this
+              hSN_u
+              hLc_u
+              hLc_lam'
+              hBody'
+              (hBody' _ (by rfl))
+              rfl
+        | @app₂ _ u u' hStep =>
+          have hLc_u' : LcTm u' := lcTm_step hLc_u hStep
+          have hBody' : ∀ u'', u' ⟶* u'' → t⟪u''⟫ ∈ S := by
+            intro u'' hSteps
+            exact hBody u'' (Relation.ReflTransGen.head hStep hSteps)
+          exact ih_u _ hStep hLc_u' hLc_lam hBody' (hBody' _ (by rfl)) rfl
+        | appLam _ _ => apply hBody; rfl
+
+lemma sn_tLam_of_sn_open {t : Tm} {U : Ty} (hLc_U : LcTy U) (h : SN (t⟪U⟫)) : SN (Λ' t) := by
+  generalize hEq : t⟪U⟫ = tU at h
+  induction h generalizing t with
+  | intro tU _ ih =>
+    subst hEq
+    constructor
+    intro v hStep
+    cases hStep with
+    | @tLamBody t t' L hStepBody =>
+      have hStepOpen : t⟪U⟫ ⟶ t'⟪U⟫ := step_tLamBody_openTmTy hStepBody hLc_U
+      exact ih _ hStepOpen rfl
+
+lemma RC_tApp_tLam {t U S}
+    (hRC : RC S)
+    (hLc_tLam : LcTm (Λ' t))
+    (hLc_U : LcTy U)
+    (hBody : t⟪U⟫ ∈ S) :
+    (Λ' t)⦃U⦄ ∈ S := by
+  have hSN_tLam : SN (Λ' t) := sn_tLam_of_sn_open hLc_U (hRC.cr₁ hBody)
+  generalize hEq : (Λ' t) = tLam at hSN_tLam
+  induction hSN_tLam generalizing t with subst hEq
+  | intro x h ih =>
+    apply hRC.cr₃
+    · constructor <;> assumption
+    · constructor
+    · intro v hStep
+      cases hStep with
+      | tApp₁ hStep =>
+        cases hStep with
+        | @tLamBody t t' L hStepBody =>
+          have hStepOpen : t⟪U⟫ ⟶ t'⟪U⟫ := step_tLamBody_openTmTy hStepBody hLc_U
+          have hLc_tLam' : LcTm (Λ' t') := lcTm_step hLc_tLam (Step.tLamBody L hStepBody)
+          have ht'_in_S : t'⟪U⟫ ∈ S := hRC.cr₂ hBody hStepOpen
+          have := Step.tLamBody L hStepBody
+          exact ih _ this hLc_tLam' ht'_in_S rfl
+      | tAppTLam _ _ => exact hBody
+
+lemma interp_openTy_fvar {T : Ty} {X : Name} {ρ : SemEnv} {S : Set Tm}
+    (hX : X ∉ T.fv) :
+    (T⟪$T X⟫).interp { ρ with free := Function.update ρ.free X S } =
+    T.interp { ρ with bound := S :: ρ.bound } := by sorry
 
 theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     (hValid : ρ.IsValid) (hEnv : EnvRel Γ ρ δ γ) :
@@ -363,8 +552,11 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
           · simp only [Function.update, hy, ↓reduceDIte]
             exact hEnv.γ_lc y
         · exact hEnv.δ_lc
-    · have ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
-      let γ' := Function.update γ x u
+    · intro u' hSteps
+      have hRC₁ := interp_soundness T₁ hValid
+      have hu' : u' ∈ T₁.interp ρ := hRC₁.cr₂_multi hu hSteps
+      obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+      let γ' := Function.update γ x u'
       have hEnv' : EnvRel ((x, .tm T₁) :: Γ) ρ δ γ' := by
         constructor
         · intro Y hY
@@ -385,7 +577,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
           by_cases hy : y = x
           · simp only [hy, Function.update_self, γ']
             have := interp_soundness T₁ hValid
-            exact this.lc hu
+            exact this.lc hu'
           · simp only [ne_eq, hy, not_false_eq_true, Function.update_of_ne, γ']
             apply hEnv.γ_lc
       have := ih x (by aesop) hValid hEnv'
@@ -394,8 +586,45 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
       · aesop
       · exact hEnv.γ_lc
     · assumption
-  | app Γ t₁ t₂ T₁ T₂ _ _ _ _ => sorry
-  | tLam L Γ t T _ _ => sorry
+  | app Γ t₁ t₂ T₁ T₂ _ _ ih₁ ih₂ =>
+    simp only [Tm.psubst]
+    have h₁ := ih₁ hValid hEnv
+    have h₂ := ih₂ hValid hEnv
+    exact h₁ _ h₂
+  | tLam L Γ t T h ih =>
+    simp only [Ty.interp, all_set, Tm.psubst, Set.mem_setOf_eq]
+    intro S hS U hLc_U
+    obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv ∪ t.fvTy)
+    let δ' := Function.update δ X U
+    let ρ' := { ρ with free := Function.update ρ.free X S }
+    have hEnv' : EnvRel ((X, Binding.ty) :: Γ) ρ' δ' γ := by
+      constructor
+      · intro Y hY
+        simp only [List.mem_cons, Prod.mk.injEq, and_true] at hY
+        by_cases hXY : Y = X
+        · simp only [Function.update, hXY, ↓reduceDIte, eq_rec_constant, Function.update_self, δ',
+          ρ']
+          exact ⟨hS, hLc_U⟩
+        · simp only [Finset.union_assoc, Finset.mem_union, not_or, hXY, false_or,
+          not_false_eq_true, ne_eq, Function.update_of_ne, δ', ρ'] at *
+          exact hEnv.ty_rel hY
+      · intro y U hy
+        simp at hy
+        by_cases hXy : y = X
+        · simp [ρ', hXy]
+          sorry
+        sorry
+      · sorry
+      · sorry
+    have hValid' : ρ'.IsValid := sorry
+    have := ih X (by aesop) hValid' hEnv'
+    rw [←psubst_openTmTy_comm' (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)] at this
+    rw [interp_openTy_fvar (by aesop)] at this
+    apply RC_tApp_tLam
+    · sorry
+    · sorry
+    · exact hLc_U
+    · exact this
   | tApp Γ t T₁ T₂ _ _ _ => sorry
 
 end SystemF.StronglyNormalization

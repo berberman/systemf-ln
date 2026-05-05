@@ -119,5 +119,38 @@ lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : TySubst}
         · aesop
         · aesop
 
+def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
+  match T with
+  | .bvar idx => idx < k
+  | .fvar _ => True
+  | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
+  | .all T => T.LcAt (k + 1)
+
+@[simp]
+theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
+    (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by
+  induction T generalizing k with
+  | bvar idx =>
+    simp only [openTy_bvar, beq_iff_eq, Ty.LcAt, Order.lt_add_one_iff] at *
+    by_cases hIdx : idx = k
+    · omega
+    · simp [hIdx, Ty.LcAt] at h
+      omega
+  | fvar name => simp [Ty.LcAt]
+  | arr T₁ T₂ T₁_ih T₂_ih => simp [Ty.LcAt] at *; aesop
+  | all T ih => simp [Ty.LcAt] at *; grind
+
+@[simp]
+theorem lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
+  induction h with
+  | fvar x => simp [Ty.LcAt]
+  | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; aesop
+  | all L T _ ih =>
+    have ⟨X, hX⟩ := exists_fresh_name L
+    have := ih X hX
+    have := lcAtTy_of_openTy this
+    simp only [zero_add, Ty.LcAt] at *
+    assumption
+
 
 end SystemF

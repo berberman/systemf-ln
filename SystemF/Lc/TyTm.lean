@@ -7,8 +7,23 @@ open Notation
 @[aesop unsafe 70% apply]
 theorem openTmTy_substTmTy_comm {t : Tm} {U : Ty} {X Y : Name} {k : ℕ}
     (hNeq : X ≠ Y) (hU : LcTy U) :
-    (t[X ↦ U])⟪k, ($T Y)⟫ = (t⟪k, ($T Y)⟫)[X ↦ U] := by
+    (t[X ↦ U])⟪k, ($T Y)⟫ = (t⟪k, ($T Y)⟫)[X ↦ U] := by?
   induction t generalizing k with aesop
+
+lemma openTmTy_substTmTy_comm' {t : Tm} {X : Name} {U V : Ty} {k : ℕ}
+    (hU : LcTy U) :
+    (t[X ↦ U])⟪k, V[X ↦ U]⟫ = (t⟪k, V⟫)[X ↦ U] := by
+  induction t generalizing k with
+  | bvar idx => simp
+  | fvar name => simp
+  | app t₁ t₂ t₁_ih t₂_ih => aesop
+  | tApp t T ih =>
+    simp only [substTmTy_tApp, openTmTy_tApp, ih, Tm.tApp.injEq, true_and]
+    rw [substTy_dist_openTy hU]
+  | lam T t ih =>
+    simp only [substTmTy_lam, openTmTy_lam, ih, Tm.lam.injEq, and_true]
+    rw [substTy_dist_openTy hU]
+  | tLam t ih => aesop
 
 @[aesop safe forward]
 theorem openTmTy_eq_id {k j : ℕ} {t u : Tm} {T : Ty} (h : t⟪j, u⟫⟪k, T⟫ = t⟪j, u⟫) :

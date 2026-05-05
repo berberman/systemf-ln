@@ -260,14 +260,6 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ₁ δ₂ : Name → Ty) (γ₁
   γ₂_lc : ∀ x, LcTm (γ₂ x)
 
 @[simp]
-lemma ty_psubst_id (T : Ty) : T.psubst TySubst.empty = T := by
-  induction T <;> simp [Ty.psubst, TySubst.empty, *]
-
-@[simp]
-lemma tm_psubst_id (t : Tm) : t.psubst TmSubst.empty TySubst.empty = t := by
-  induction t <;> simp [Tm.psubst, TmSubst.empty, *]
-
-@[simp]
 theorem envRel_empty :
     EnvRel [] SemEnv.empty
       TySubst.empty TySubst.empty
@@ -310,37 +302,6 @@ lemma valRel_free_update_of_not_mem {T : Ty} {X : Name} {ρ : SemEnv} {R : TmRel
       have := ih (ρ := ρ') hX'
       exact expRel_eq_of_valRel_eq this
     simp [this]
-
-def _root_.SystemF.Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
-  match T with
-  | .bvar idx => idx < k
-  | .fvar _ => True
-  | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
-  | .all T => T.LcAt (k + 1)
-
-lemma lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
-    (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by
-  induction T generalizing k with
-  | bvar idx =>
-    simp only [openTy_bvar, beq_iff_eq, Ty.LcAt, Order.lt_add_one_iff] at *
-    by_cases hIdx : idx = k
-    · omega
-    · simp [hIdx, Ty.LcAt] at h
-      omega
-  | fvar name => simp [Ty.LcAt]
-  | arr T₁ T₂ T₁_ih T₂_ih => simp [Ty.LcAt] at *; aesop
-  | all T ih => simp [Ty.LcAt] at *; grind
-
-lemma lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
-  induction h with
-  | fvar x => simp [Ty.LcAt]
-  | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; aesop
-  | all L T _ ih =>
-    have ⟨X, hX⟩ := exists_fresh_name L
-    have := ih X hX
-    have := lcAtTy_of_openTy this
-    simp only [zero_add, Ty.LcAt] at *
-    assumption
 
 lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmRel}
     (hX : X ∉ T.fv)

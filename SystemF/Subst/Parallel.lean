@@ -25,4 +25,12 @@ def Tm.psubst (γ : TmSubst) (δ : TySubst) : Tm → Tm
   | .tApp t T => .tApp (t.psubst γ δ) (T.psubst δ)
   | .tLam t => .tLam (t.psubst γ δ)
 
+@[simp]
+lemma ty_psubst_id (T : Ty) : T.psubst TySubst.empty = T := by
+  induction T <;> simp [Ty.psubst, TySubst.empty, *]
+
+@[simp]
+lemma tm_psubst_id (t : Tm) : t.psubst TmSubst.empty TySubst.empty = t := by
+  induction t <;> simp [Tm.psubst, TmSubst.empty, *]
+
 end SystemF
