@@ -126,7 +126,7 @@ def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
   | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
   | .all T => T.LcAt (k + 1)
 
-@[simp]
+@[aesop unsafe 70% apply]
 theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
     (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by
   induction T generalizing k with
@@ -140,7 +140,7 @@ theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
   | arr T₁ T₂ T₁_ih T₂_ih => simp [Ty.LcAt] at *; aesop
   | all T ih => simp [Ty.LcAt] at *; grind
 
-@[simp]
+@[aesop unsafe 70% apply]
 theorem lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
   induction h with
   | fvar x => simp [Ty.LcAt]

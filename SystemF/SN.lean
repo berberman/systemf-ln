@@ -421,6 +421,10 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ : TySubst) (γ : TmSubst) : Pr
   /-- The term substitution is locally closed -/
   γ_lc : ∀ x, LcTm (γ x)
 
+@[simp]
+lemma envRel_empty : EnvRel [] SemEnv.empty TySubst.empty TmSubst.empty := by
+  constructor <;> simp [SemEnv.empty, TySubst.empty, TmSubst.empty] <;> try intro; constructor
+
 lemma sn_lam_of_sn_open {A} {t u : Tm} (hLc_u : LcTm u) (h : SN (t⟪u⟫)) : SN (ƛ A => t) := by
   generalize hEq : t⟪u⟫ = tu at h
   induction h generalizing t with subst hEq
@@ -517,10 +521,138 @@ lemma RC_tApp_tLam {t U S}
           exact ih _ this hLc_tLam' ht'_in_S rfl
       | tAppTLam _ _ => exact hBody
 
+lemma interp_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {S : Set Tm}
+    (hX : X ∉ T.fv)
+    (hk : k ≤ ρ.bound.length)
+    (hLcT : T.LcAt (k + 1)) :
+    T.interp { ρ with bound := ρ.bound.insertIdx k S } =
+    (T⟪k, $TX⟫).interp { ρ with free := Function.update ρ.free X S } := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp [Ty.LcAt] at hLcT
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · have h₁ : idx ≠ k := by aesop
+      simp [Ty.interp, h₁]
+      grind
+    · simp [Ty.interp, heq]
+      grind
+    · simp [Ty.interp]
+      grind
+  | fvar name =>
+    simp only [Ty.fv, Finset.mem_singleton, openTy_fvar] at *
+    have : name ≠ X := by aesop
+    simp [Ty.interp, this]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp only [Ty.interp, openTy_arr]
+    simp only [Ty.fv, Finset.mem_union, not_or] at hX
+    simp only [Ty.LcAt] at hLcT
+    aesop
+  | all T ih =>
+    simp only [Ty.LcAt] at hLcT
+    simp only [Ty.fv] at hX
+    simp only [Ty.interp, openTy_all]
+    funext t
+    congr
+    funext S'
+    exact ih (ρ := { bound := S' :: ρ.bound, free := ρ.free }) hX (by grind) hLcT
+
+lemma List.insertIdx_cons {α} (xs : List α) (x : α) : List.insertIdx xs 0 x = x :: xs := rfl
+
 lemma interp_openTy_fvar {T : Ty} {X : Name} {ρ : SemEnv} {S : Set Tm}
+    (hX : X ∉ T.fv) (hLcT : T.LcAt 1) :
+    T.interp { ρ with bound := S :: ρ.bound } =
+    (T⟪$T X⟫).interp { ρ with free := Function.update ρ.free X S } := by
+  rw [←List.insertIdx_cons]
+  apply interp_openTy_comm_at hX (by simp) hLcT
+
+lemma interp_bound_irr_at {T : Ty} {k : ℕ} {ρ : SemEnv} {S : Set Tm}
+    (hk : k ≤ ρ.bound.length)
+    (hLc : T.LcAt k) :
+    T.interp { ρ with bound := ρ.bound.insertIdx k S } = T.interp ρ := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp [Ty.LcAt] at hLc
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · simp [Ty.interp]
+      grind
+    · simp [Ty.interp]
+      grind
+    · simp [Ty.interp]
+      grind
+  | fvar name => simp [Ty.interp]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp [Ty.LcAt] at hLc
+    simp [Ty.interp, T₁_ih hk hLc.1, T₂_ih hk hLc.2]
+  | all T ih =>
+    simp only [Ty.LcAt] at hLc
+    simp only [Ty.interp]
+    funext t
+    congr
+    funext S'
+    exact ih (ρ := { bound := S' :: ρ.bound, free := ρ.free }) (by grind) hLc
+
+lemma interp_bound_irr {T : Ty} {ρ : SemEnv} {S : Set Tm} (hLc : T.LcAt 0) :
+    T.interp { ρ with bound := S :: ρ.bound } = T.interp ρ := by
+  rw [←List.insertIdx_cons]
+  apply interp_bound_irr_at (by simp) hLc
+
+lemma interp_openTy_bound_at {T U : Ty} {k : ℕ} {ρ : SemEnv}
+    (hk : k ≤ ρ.bound.length)
+    (hLcT : T.LcAt (k + 1))
+    (hLcU : U.LcAt 0) :
+    T.interp { ρ with bound := ρ.bound.insertIdx k (U.interp ρ) } =
+    (T⟪k, U⟫).interp ρ := by
+  induction T generalizing ρ k with
+  | bvar idx =>
+    simp [Ty.LcAt] at hLcT
+    rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
+    · have h₁ : idx ≠ k := by aesop
+      simp [Ty.interp, h₁]
+      grind
+    · simp [Ty.interp, heq]
+      grind
+    · simp [Ty.interp]
+      grind
+  | fvar name => simp [Ty.interp]
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp [Ty.LcAt] at hLcT
+    simp [Ty.interp, openTy_arr, T₁_ih hk hLcT.1, T₂_ih hk hLcT.2]
+  | all T ih =>
+    simp only [Ty.LcAt] at hLcT
+    simp only [Ty.interp, openTy_all]
+    funext t
+    congr
+    funext S'
+    have := ih (ρ := { bound := S' :: ρ.bound, free := ρ.free }) (k := k + 1) (by grind) hLcT
+    simp only [interp_bound_irr hLcU, List.insertIdx_succ_cons] at this
+    exact this
+
+lemma interp_openTy_bound {T U : Ty} {ρ : SemEnv} (hLcT : T.LcAt 1) (hLcU : U.LcAt 0) :
+    T.interp { ρ with bound := (U.interp ρ) :: ρ.bound } =
+    (T⟪U⟫).interp ρ := by
+  rw [←List.insertIdx_cons]
+  apply interp_openTy_bound_at (by simp) hLcT hLcU
+
+lemma interp_free_update_of_not_mem {T : Ty} {X : Name} {ρ : SemEnv} {S : Set Tm}
     (hX : X ∉ T.fv) :
-    (T⟪$T X⟫).interp { ρ with free := Function.update ρ.free X S } =
-    T.interp { ρ with bound := S :: ρ.bound } := by sorry
+    T.interp { ρ with free := Function.update ρ.free X S } = T.interp ρ := by
+  induction T generalizing ρ with
+  | bvar idx => rfl
+  | fvar name =>
+    simp at hX
+    simp only [Ty.interp, Function.update, eq_rec_constant, dite_eq_ite, ite_eq_right_iff]
+    intro _
+    aesop
+  | arr T₁ T₂ T₁_ih T₂_ih =>
+    simp at hX
+    simp [Ty.interp, T₁_ih hX.1, T₂_ih hX.2]
+  | all T ih =>
+    simp only [Ty.fv] at hX
+    simp only [Ty.interp]
+    funext T
+    congr
+    funext S'
+    exact ih (ρ := { bound := S' :: ρ.bound, free := ρ.free }) hX
 
 theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     (hValid : ρ.IsValid) (hEnv : EnvRel Γ ρ δ γ) :
@@ -594,7 +726,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
   | tLam L Γ t T h ih =>
     simp only [Ty.interp, all_set, Tm.psubst, Set.mem_setOf_eq]
     intro S hS U hLc_U
-    obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv ∪ t.fvTy)
+    obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv ∪ t.fvTy ∪ Context.fv Γ)
     let δ' := Function.update δ X U
     let ρ' := { ρ with free := Function.update ρ.free X S }
     have hEnv' : EnvRel ((X, Binding.ty) :: Γ) ρ' δ' γ := by
@@ -609,22 +741,80 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
           not_false_eq_true, ne_eq, Function.update_of_ne, δ', ρ'] at *
           exact hEnv.ty_rel hY
       · intro y U hy
-        simp at hy
-        by_cases hXy : y = X
-        · simp [ρ', hXy]
-          sorry
-        sorry
-      · sorry
-      · sorry
-    have hValid' : ρ'.IsValid := sorry
+        simp only [List.mem_cons] at hy
+        cases hy with
+        | inl h => cases h
+        | inr h =>
+          have := hEnv.tm_rel h
+          have := subset_fv_of_mem_tm h
+          have : U.interp ρ' = U.interp ρ := interp_free_update_of_not_mem (by grind)
+          simpa [this]
+      · intro Y
+        by_cases hXY : Y = X
+        · simp only [hXY, Function.update_self, δ']
+          exact hLc_U
+        · simp only [ne_eq, hXY, not_false_eq_true, Function.update_of_ne, δ']
+          apply hEnv.δ_lc
+      · exact hEnv.γ_lc
+    have hValid' : ρ'.IsValid := by
+      constructor
+      · intro Y
+        by_cases hXY : Y = X
+        · simp [ρ', hXY, Function.update, hS]
+        · simp only [ne_eq, hXY, not_false_eq_true, Function.update_of_ne, ρ']
+          exact hValid.free_rc Y
+      · exact hValid.bound_rc
     have := ih X (by aesop) hValid' hEnv'
+    have hLcAt_t : T.LcAt 1 := by
+      have := h X (by aesop) |> typing_regularity_ty
+      have := lcAt_zero_of_lcTy this
+      have := lcAtTy_of_openTy this
+      simp [this]
     rw [←psubst_openTmTy_comm' (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)] at this
-    rw [interp_openTy_fvar (by aesop)] at this
+    rw [←interp_openTy_fvar (by aesop) hLcAt_t] at this
     apply RC_tApp_tLam
-    · sorry
-    · sorry
+    · apply interp_soundness
+      apply semEnv_valid_extend_bound hValid hS
+    · apply LcTm.tLam (L ∪ t.fvTy)
+      intro Y hY
+      rw [psubst_openTmTy_comm (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)]
+      apply psubst_lcTm
+      · have := h Y (by aesop) |> typing_regularity_tm
+        apply this
+      · exact hEnv.γ_lc
+      · intro Y'
+        by_cases hYY' : Y' = Y
+        · simp [hYY', Function.update]
+          constructor
+        · simp only [Function.update, hYY', ↓reduceDIte]
+          apply hEnv.δ_lc
     · exact hLc_U
     · exact this
-  | tApp Γ t T₁ T₂ _ _ _ => sorry
+  | tApp Γ t T₁ T₂ h _ ih =>
+    simp only [Tm.psubst]
+    have f := ih hValid hEnv
+    simp only [Ty.interp, all_set, Set.mem_setOf_eq] at f
+    have hLc_subst_T₂ : LcTy (T₂.psubst δ) := by
+      apply psubst_lcTy
+      · assumption
+      · exact hEnv.δ_lc
+    have hRC_T₂ := interp_soundness T₂ hValid
+    have := f (T₂.interp ρ) hRC_T₂ _ hLc_subst_T₂
+    have hLc_all : LcTy (∀' T₁) := typing_regularity_ty h
+    have hLc_T₁ : T₁.LcAt 1 := by
+      cases hLc_all with
+      | all L T h =>
+        obtain ⟨X, hX⟩ := exists_fresh_name L
+        have := h X hX
+        apply lcAtTy_of_openTy
+        apply lcAt_zero_of_lcTy this
+    rw [interp_openTy_bound hLc_T₁ (lcAt_zero_of_lcTy (by assumption))] at this
+    exact this
+
+theorem strongly_normalizing {t T} (hTyp : ∅ ⊢ t ∶ T) : SN t := by
+  have := fundamental hTyp semEnv_empty_valid envRel_empty
+  simp only [tm_psubst_id] at this
+  have hRC_T := interp_soundness T semEnv_empty_valid
+  apply hRC_T.cr₁ this
 
 end SystemF.StronglyNormalization
