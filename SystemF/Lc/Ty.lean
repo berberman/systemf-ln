@@ -1,21 +1,15 @@
 import SystemF.Subst.Ty
 import SystemF.Subst.Parallel
+import SystemF.Lc.Basic
+import SystemF.Lc.Tactic
 
 namespace SystemF
 
 open Notation
 
-/-- A type `T` is locally closed if its bound indices are properly bound.
-  Here we use cofinite quantification.
--/
-inductive LcTy : Ty → Prop where
-  | fvar x : LcTy ($T x)
-  | arr T₁ T₂ : LcTy T₁ → LcTy T₂ → LcTy (T₁ ⇒ T₂)
-  | all (L : Finset Name) T : (∀ X ∉ L, LcTy (T⟪$T X⟫)) → LcTy (∀' T)
-
 /-- A simple locally closed type example. -/
 example : LcTy (∀' (#T 0 ⇒ #T 0)) := by
-  apply LcTy.all ∅
+  apply_cofinite
   grind [LcTy.fvar, LcTy.arr]
 
 theorem openTy_neq_id {k j : ℕ} {T U V : Ty} (hNeq : k ≠ j) (h : T⟪j, V⟫⟪k, U⟫ = T⟪j, V⟫) :
@@ -45,7 +39,7 @@ theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T
   | arr T₁ T₂ _ _ ih₁ ih₂ => grind [LcTy.arr]
   | all L T _ ih =>
     simp only [subst_all]
-    apply LcTy.all (L ∪ {X} ∪ U.fv)
+    apply_cofinite
     grind [openTy_substTy_comm]
 
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
@@ -83,7 +77,7 @@ lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : TySubst}
   | arr T₁ T₂ T₁_ih T₂_ih =>
     constructor <;> grind
   | all L T _ ih =>
-    apply LcTy.all (L ∪ T.fv)
+    apply_cofinite
     grind [psubst_openTy_comm, LcTy.fvar]
 
 def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
@@ -101,8 +95,6 @@ theorem lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
   induction h with
   | fvar x => simp [Ty.LcAt]
   | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; grind
-  | all L T _ ih =>
-    have ⟨X, hX⟩ := exists_fresh_name L
-    grind [lcAtTy_of_openTy, Ty.LcAt]
+  | all L T _ ih => grind [exists_fresh_name L, lcAtTy_of_openTy, Ty.LcAt]
 
 end SystemF

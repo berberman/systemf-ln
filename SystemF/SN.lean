@@ -41,21 +41,13 @@ theorem lcTm_step {t t' : Tm} (h : LcTm t) (hStep : t ⟶ t') : LcTm t' := by
   | tApp₁ _ _ => cases h; constructor <;> aesop
   | tLamBody L _ ih =>
     cases h with
-    | tLam L' t h =>
-      apply LcTm.tLam (L ∪ L')
-      intro X hX
-      have := h X (by aesop)
-      apply ih X (by aesop) this
+    | tLam L' t h => apply_cofinite; grind
   | lamBody L _ _ ih =>
     cases h with
     | lam L' T t _ h =>
-      apply LcTm.lam (L ∪ L')
-      · assumption
-      · intro x hx
-        have := h x (by aesop)
-        apply ih x (by aesop) this
-  | appLam _ _ => cases h; aesop
-  | tAppTLam _ _ => cases h; aesop
+      apply_cofinite <;> grind
+  | appLam _ _ => cases h; grind
+  | tAppTLam _ _ => cases h; grind
 
 theorem lcTm_multi_step {t t' : Tm} (h : LcTm t) (hSteps : t ⟶* t') : LcTm t' := by
   induction hSteps with
@@ -669,7 +661,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     · apply (interp_soundness T₁ _).cr₁ hu
       assumption
     · exact interp_soundness T₁ hValid |>.lc hu
-    · apply LcTm.lam (L ∪ t.fv)
+    · apply_cofinite
       · apply psubst_lcTy
         · assumption
         · exact hEnv.δ_lc

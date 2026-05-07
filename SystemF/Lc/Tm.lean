@@ -6,20 +6,9 @@ namespace SystemF
 
 open Notation
 
-/-
-  Similar to `LcTy`, but for terms.
--/
-inductive LcTm : Tm → Prop where
-  | fvar x : LcTm ($v x)
-  | app t₁ t₂ : LcTm t₁ → LcTm t₂ → LcTm (t₁ ◦ t₂)
-  | lam (L : Finset Name) T t :
-      LcTy T → (∀ x ∉ L, LcTm (t⟪$v x⟫)) → LcTm (ƛ T => t)
-  | tApp t T : LcTm t → LcTy T → LcTm (t⦃T⦄)
-  | tLam (L : Finset Name) t : (∀ X ∉ L, LcTm (t⟪$T X⟫)) → LcTm (Λ' t)
-
 -- Example: `λ A => y 0` is a locally closed term
 example : LcTm (ƛ ($T "A") => $v "y" ◦ #v 0) := by
-  apply LcTm.lam {"y"}
+  apply_cofinite
   constructor
   intros
   repeat constructor

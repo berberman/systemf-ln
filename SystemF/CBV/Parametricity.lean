@@ -491,7 +491,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
   | lam L Γ T₁ T₂ t _ h ih =>
     simp only [Tm.psubst]
     apply expRel_lam
-    · apply LcTm.lam (L ∪ t.fv)
+    · apply_cofinite
       · apply psubst_lcTy
         · assumption
         · exact hEnv.δ₁_lc
@@ -508,7 +508,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
             exact hEnv.γ₁_lc y
         · intro Y
           exact hEnv.δ₁_lc Y
-    · apply LcTm.lam (L ∪ t.fv)
+    · apply_cofinite
       · apply psubst_lcTy
         · assumption
         · exact hEnv.δ₂_lc
@@ -575,7 +575,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
   | tLam L Γ t T h ih =>
     simp only [Tm.psubst]
     have hLc_v₁ : LcTm (Λ' Tm.psubst γ₁ δ₁ t) := by
-      apply LcTm.tLam (L ∪ t.fvTy)
+      apply_cofinite
       intro X hX
       rw [psubst_openTmTy_comm (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc]
       apply psubst_lcTm
@@ -589,7 +589,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
         · simp only [Function.update, hY, ↓reduceDIte]
           exact hEnv.δ₁_lc Y
     have hLc_v₂ : LcTm (Λ' Tm.psubst γ₂ δ₂ t) := by
-      apply LcTm.tLam (L ∪ t.fvTy)
+      apply_cofinite
       intro X hX
       rw [psubst_openTmTy_comm (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc]
       apply psubst_lcTm

@@ -40,18 +40,17 @@ def substCtx (X : Name) (U : Ty) (Γ : Context) : Context :=
     | .tm T => (y, .tm (substTy X U T))
   )
 
-@[simp]
 instance : Subst Ty Context where
   subst := substCtx
 
-@[simp]
+@[simp, grind =]
 lemma substCtx_nil {X : Name} {U : Ty} : ([][X ↦ U] : Context) = [] := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substCtx_cons_tm {Γ : Context} {X : Name} {U : Ty} {y : Name} {T : Ty} :
    ((y, .tm T) :: Γ)[X ↦ U] = (y, .tm T[X ↦ U]) :: Γ[X ↦ U] := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substCtx_cons_ty {Γ : Context} {X : Name} {U : Ty} {Y : Name} :
    ((Y, .ty) :: Γ)[X ↦ U] = (Y, .ty) :: Γ[X ↦ U] := rfl
 
@@ -91,22 +90,20 @@ lemma substCtx_tm_mem {Γ : Context} {x : Name} {T U : Ty} {X : Name}
     (h : (x, .tm T) ∈ Γ) :
     (x, .tm T[X ↦ U]) ∈ Γ[X ↦ U] := by
   exact List.mem_map_of_mem h
+
 /-- Well-typed terms are locally closed terms. -/
 lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
   induction h with
-  | var Γ x T _ _ _ =>
-    constructor
+  | var Γ x T _ _ _ => constructor
   | lam L Γ T₁ T₂ t _ _ ih =>
-    constructor
+    apply_cofinite?
     · assumption
-    · intro x h
-      apply ih
-      exact h
+    · grind
   | app Γ t₁ t₂ T₁ T₂ _ _ _ _ =>
     constructor <;> assumption
   | tLam L Γ t T _ ih =>
-    constructor
-    exact ih
+    apply_cofinite
+    grind
   | tApp Γ t T₁ T₂ _ _ _ =>
     constructor <;> assumption
 
@@ -124,8 +121,8 @@ lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
     cases ih₁
     assumption
   | tLam L Γ t T _ ih =>
-    apply LcTy.all L
-    assumption
+    apply_cofinite
+    grind
   | tApp Γ t T₁ T₂ _ _ ih =>
     apply openTy_lcTy ih
     assumption

@@ -32,13 +32,9 @@ theorem openTmTy_lcTm_id {u : Tm} (hu : LcTm u) (k : ℕ) (V : Ty) :
     simp only [openTmTy_lam, Tm.lam.injEq]
     constructor
     · apply openTy_lcTy_id hT
-    · have ⟨x, hx⟩ := exists_fresh_name L
-      grind [openTmTy_eq_id]
+    · grind [exists_fresh_name L, openTmTy_eq_id]
   | tApp t T _ _ ih => grind [openTy_lcTy_id]
-  | tLam L _ _ ih =>
-    simp only [openTmTy_tLam, Tm.tLam.injEq]
-    have ⟨X, hX⟩ := exists_fresh_name L
-    grind [openTmTy_neq_id]
+  | tLam L _ _ ih =>  grind [exists_fresh_name L, openTmTy_neq_id]
 
 theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcTm u) :
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
@@ -50,14 +46,13 @@ theorem substTm_lcTm {t u : Tm} {x : Name} (ht : LcTm t) (hu : LcTm u) : LcTm (t
   | app t₁ t₂ _ _ ih₁ ih₂ => grind [LcTm.app]
   | lam L T t _ _ ih =>
     simp only [substTm_lam]
-    apply LcTm.lam (L ∪ {x})
+    apply_cofinite
     · assumption
-    · intro y hy
-      grind [openTm_substTm_comm_of_neq]
+    · grind [openTm_substTm_comm_of_neq]
   | tApp t T _ _ ih => grind [LcTm.tApp]
   | tLam L t _ ih =>
     simp only [substTm_tLam]
-    apply LcTm.tLam (L ∪ {x})
+    apply_cofinite
     intro Y hY
     rw [←openTmTy_substTm_comm hu]
     apply ih
@@ -69,7 +64,7 @@ theorem substTmTy_lcTm {t : Tm} {X : Name} {U : Ty} (ht : LcTm t)
   | fvar x => simp; constructor
   | app t₁ t₂ _ _ ih₁ ih₂ => grind [LcTm.app]
   | lam L T t _ _ ih =>
-    apply LcTm.lam (L ∪ {X})
+    apply_cofinite
     · apply substTy_lcTy
       · assumption
       · assumption
@@ -81,13 +76,14 @@ theorem substTmTy_lcTm {t : Tm} {X : Name} {U : Ty} (ht : LcTm t)
   | tApp t T _ _ ih =>
     grind [substTy_lcTy, LcTm.tApp]
   | tLam L t _ ih =>
-    apply LcTm.tLam (L ∪ {X})
+    apply_cofinite
     intro Y hY
     -- (substTmTy X U t⟪$TY⟫)
     -- (t⟪$TY⟫)[X ↦ U]
     change LcTm ((t[X ↦ U])⟪$TY⟫)
     grind [openTmTy_substTmTy_comm]
 
+@[grind .]
 theorem openTm_lcTm {t u : Tm} {T : Ty} (ht : LcTm (ƛ T => t)) (hu : LcTm u) :
     LcTm (t⟪u⟫) := by
   cases ht with
@@ -99,6 +95,7 @@ theorem openTm_lcTm {t u : Tm} {T : Ty} (ht : LcTm (ƛ T => t)) (hu : LcTm u) :
       grind
     · assumption
 
+@[grind .]
 theorem openTmTy_lcTm {t : Tm} {U : Ty} (ht : LcTm (Λ' t)) (hU : LcTy U) :
     LcTm (t⟪U⟫) := by
   cases ht with
@@ -131,13 +128,12 @@ lemma psubst_lcTm {t : Tm} (ht : LcTm t)
   | fvar x => exact hγ x
   | app t₁ t₂ _ _ _ _ => grind [Tm.psubst, LcTm.app]
   | lam L T t _ _ ih =>
-    apply LcTm.lam (L ∪ t.fv)
+    apply_cofinite
     · apply psubst_lcTy <;> assumption
     · grind [psubst_openTm_comm, LcTm.fvar]
   | tApp t T _ _ _ => grind [Tm.psubst, psubst_lcTy, LcTm.tApp]
   | tLam L t _ ih =>
-    simp only [Tm.psubst]
-    apply LcTm.tLam (L ∪ t.fvTy)
+    apply_cofinite
     grind [psubst_openTmTy_comm, LcTy.fvar]
 
 end SystemF
