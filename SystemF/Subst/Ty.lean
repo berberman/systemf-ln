@@ -15,19 +15,19 @@ def openTy (k : ℕ) (U T : Ty) : Ty :=
 instance : Open Ty Ty where
   «open» := openTy
 
-@[simp]
+@[simp, grind =]
 lemma openTy_bvar {k : ℕ} {U : Ty} {x : ℕ} :
   (#T x)⟪k, U⟫ = if x == k then U else #T x := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTy_fvar {k : ℕ} {U : Ty} {X : Name} :
   ($T X)⟪k, U⟫ = $T X := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTy_arr {k : ℕ} {U T₁ T₂ : Ty} :
   (T₁ ⇒ T₂)⟪k, U⟫ = (T₁⟪k, U⟫ ⇒ T₂⟪k, U⟫) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTy_all {k : ℕ} {U T : Ty} :
   (∀' T)⟪k, U⟫ = ∀' (T⟪k + 1, U⟫) := rfl
 
@@ -43,16 +43,16 @@ def substTy (X : Name) (U T : Ty) : Ty :=
 instance : Subst Ty Ty where
   subst := substTy
 
-@[simp] lemma subst_bvar (X : Name) (U : Ty) (x : ℕ) :
+@[simp, grind =] lemma subst_bvar (X : Name) (U : Ty) (x : ℕ) :
   (Ty.bvar x)[X ↦ U] = Ty.bvar x := rfl
 
-@[simp] lemma subst_fvar (X : Name) (U : Ty) (Y : Name) :
+@[simp, grind =] lemma subst_fvar (X : Name) (U : Ty) (Y : Name) :
   (Ty.fvar Y)[X ↦ U] = if X == Y then U else Ty.fvar Y := rfl
 
-@[simp] lemma subst_arr (X : Name) (U T₁ T₂ : Ty) :
+@[simp, grind =] lemma subst_arr (X : Name) (U T₁ T₂ : Ty) :
   (Ty.arr T₁ T₂)[X ↦ U] = Ty.arr (T₁[X ↦ U]) (T₂[X ↦ U]) := rfl
 
-@[simp] lemma subst_all (X : Name) (U T : Ty) :
+@[simp, grind =] lemma subst_all (X : Name) (U T : Ty) :
   (Ty.all T)[X ↦ U] = Ty.all (T[X ↦ U]) := rfl
 
 /-- Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
@@ -61,12 +61,13 @@ instance : Subst Ty Ty where
 @[simp]
 theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
-  induction T generalizing k with aesop
+  induction T generalizing k <;> simp at * <;> grind
 
 /-- Substituting a free variable that is not free in the type does nothing. -/
 @[simp]
 lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
-    T[X ↦ U] = T := by induction T with aesop
+    T[X ↦ U] = T := by
+  induction T <;> simp at * <;> grind
 
 /-- Opening a type with a free variable preserves the size of the type.
   Useful for showing termination.
@@ -74,6 +75,6 @@ lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
 @[simp]
 lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
     (T⟪k, $T X⟫).size = T.size := by
-  induction T generalizing k with aesop
+  induction T generalizing k <;> simp at * <;> grind
 
 end SystemF

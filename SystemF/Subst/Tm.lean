@@ -18,27 +18,27 @@ def openTm (k : ℕ) (u t : Tm) : Tm :=
 instance : Open Tm Tm where
   «open» := openTm
 
-@[simp]
+@[simp, grind =]
 lemma openTm_bvar {k : ℕ} {u : Tm} {x : ℕ} :
   (#v x)⟪k, u⟫ = if x == k then u else #v x := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTm_fvar {k : ℕ} {u : Tm} {X : Name} :
   ($v X)⟪k, u⟫ = $v X := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTm_lam {k : ℕ} {u : Tm} {T : Ty} {t : Tm} :
   (ƛ T => t)⟪k, u⟫ = (ƛ T => t⟪k + 1, u⟫) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTm_app {k : ℕ} {u : Tm} {t₁ t₂ : Tm} :
   (t₁ ◦ t₂)⟪k, u⟫ = (t₁⟪k, u⟫ ◦ t₂⟪k, u⟫) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTm_tLam {k : ℕ} {u : Tm} {t : Tm} :
   (Λ' t)⟪k, u⟫ = Λ' (t⟪k, u⟫) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma openTm_tApp {k : ℕ} {u : Tm} {t : Tm} {T : Ty} :
   (t ⦃T⦄)⟪k, u⟫ = (t⟪k, u⟫⦃T⦄) := rfl
 
@@ -54,37 +54,37 @@ def substTm (X : Name) (u t : Tm) : Tm :=
 instance : Subst Tm Tm where
   subst := substTm
 
-@[simp]
+@[simp, grind =]
 lemma substTm_bvar {X : Name} {u : Tm} {idx : ℕ} :
   (Tm.bvar idx)[X ↦ u] = Tm.bvar idx := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substTm_fvar {X : Name} {u : Tm} {name : Name} :
   (Tm.fvar name)[X ↦ u] = if name == X then u else Tm.fvar name := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substTm_app {X : Name} {u : Tm} {t₁ t₂ : Tm} :
   (Tm.app t₁ t₂)[X ↦ u] = Tm.app (t₁[X ↦ u]) (t₂[X ↦ u]) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substTm_lam {X : Name} {u : Tm} {T : Ty} {t : Tm} :
   (Tm.lam T t)[X ↦ u] = Tm.lam T (t[X ↦ u]) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substTm_tLam {X : Name} {u : Tm} {t : Tm} :
   (Tm.tLam t)[X ↦ u] = Tm.tLam (t[X ↦ u]) := rfl
 
-@[simp]
+@[simp, grind =]
 lemma substTm_tApp {X : Name} {u : Tm} {t : Tm} {T : Ty} :
   (Tm.tApp t T)[X ↦ u] = Tm.tApp (t[X ↦ u]) T := rfl
 
 @[simp]
 lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
     t[X ↦ u] = t := by
-  induction t with aesop
+  induction t <;> grind
 
 theorem substTm_openTm_var {t u : Tm} {x : Name} {k : ℕ} (h : x ∉ t.fv) :
     (t⟪k, $v x⟫)[x ↦ u] = t⟪k, u⟫ := by
-  induction t generalizing k with aesop
+  induction t generalizing k <;> grind
 
 end SystemF

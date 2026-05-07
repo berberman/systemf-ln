@@ -8,7 +8,6 @@ open Notation
 /-- A type `T` is locally closed if its bound indices are properly bound.
   Here we use cofinite quantification.
 -/
-@[aesop safe constructors]
 inductive LcTy : Ty → Prop where
   | fvar x : LcTy ($T x)
   | arr T₁ T₂ : LcTy T₁ → LcTy T₂ → LcTy (T₁ ⇒ T₂)
@@ -17,84 +16,59 @@ inductive LcTy : Ty → Prop where
 /-- A simple locally closed type example. -/
 example : LcTy (∀' (#T 0 ⇒ #T 0)) := by
   apply LcTy.all ∅
-  aesop
+  grind [LcTy.fvar, LcTy.arr]
 
-@[aesop safe forward]
 theorem openTy_neq_id {k j : ℕ} {T U V : Ty} (hNeq : k ≠ j) (h : T⟪j, V⟫⟪k, U⟫ = T⟪j, V⟫) :
     T⟪k, U⟫ = T := by
-  induction T generalizing k j with aesop
+  induction T generalizing k j <;> grind
 
 @[simp]
 theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
     U⟪k, V⟫ = U := by
   induction h generalizing k V with
-  | fvar x => aesop
-  | arr T₁ T₂ _ _ ih₁ ih₂ => aesop
+  | fvar x => grind [LcTy.fvar]
+  | arr T₁ T₂ _ _ ih₁ ih₂ => grind [LcTy.arr]
   | all L T _ ih =>
     simp only [openTy_all, Ty.all.injEq]
     have ⟨X, hX⟩ := exists_fresh_name L
-    have := @ih X hX (k + 1) V
-    have := @openTy_neq_id (k + 1) 0 T V ($TX) (by aesop) (by assumption)
-    rw [this]
+    grind [openTy_neq_id]
+
 /-- Substitution commutes with opening on types -/
-@[aesop unsafe 70% apply]
 theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : LcTy U) :
     (T[X ↦ U])⟪k, ($T Y)⟫ = (T⟪k, $T Y⟫)[X ↦ U] := by
-  induction T generalizing k with aesop
+  induction T generalizing k <;> grind [openTy_lcTy_id]
 
 /-- Substitution preserves locally closedness of types -/
-@[aesop safe apply]
 theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T[X ↦ U]) := by
   induction hT with
-  | fvar x => aesop
-  | arr T₁ T₂ _ _ ih₁ ih₂ => aesop
+  | fvar x => grind [LcTy.fvar]
+  | arr T₁ T₂ _ _ ih₁ ih₂ => grind [LcTy.arr]
   | all L T _ ih =>
     simp only [subst_all]
     apply LcTy.all (L ∪ {X} ∪ U.fv)
-    intro Y hY
-    rw [openTy_substTy_comm] <;> aesop
+    grind [openTy_substTy_comm]
 
-@[aesop unsafe 70% apply]
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
     (T⟪k, V⟫)[X ↦ U] = (T[X ↦ U])⟪k, V[X ↦ U]⟫ := by
-  induction T generalizing k with aesop
+  induction T generalizing k <;> grind [openTy_lcTy_id]
 
 /-- If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
   then opening `T` with `U` yields a locally closed type.
 -/
-@[aesop unsafe 50% apply]
 theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U⟫) := by
   cases hT with
   | all L T h =>
     have ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv)
-    specialize h X (by aesop)
+    specialize h X (by grind)
     have := substTy_lcTy (X := X) h hU
-    rw [←substTy_openTy_var (X := X) (by aesop)]
+    rw [←substTy_openTy_var (X := X) (by grind)]
     apply this
-
-
-
 
 theorem psubst_openTy_comm' {k} {T U : Ty} {X : Name} {δ : Name → Ty}
     (hX : X ∉ T.fv)
     (hδ : ∀ Y, LcTy (δ Y)) :
     (T.psubst δ)⟪k, U⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X U) := by
-  induction T generalizing X k with
-  | bvar idx =>
-    simp [Ty.psubst]
-    by_cases idx_eq : idx = k <;> simp [Ty.psubst, idx_eq]
-  | fvar Y =>
-    have : Y ≠ X := by aesop
-    simp only [Ty.psubst, openTy_fvar, ne_eq, this, not_false_eq_true, Function.update_of_ne]
-    rw [openTy_lcTy_id]
-    apply hδ
-  | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp [Ty.psubst]
-    aesop
-  | all T ih =>
-    simp only [Ty.psubst, openTy_all, Ty.all.injEq]
-    apply ih
-    aesop
+  induction T generalizing X k with grind [Ty.psubst, openTy_lcTy_id]
 
 theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : TySubst}
     (hX : X ∉ T.fv)
@@ -107,17 +81,10 @@ lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : TySubst}
   induction hLc generalizing δ with
   | fvar name => exact hδ name
   | arr T₁ T₂ T₁_ih T₂_ih =>
-    constructor <;> aesop
+    constructor <;> grind
   | all L T _ ih =>
     apply LcTy.all (L ∪ T.fv)
-    intro X hX
-    rw [psubst_openTy_comm (by aesop) hδ]
-    · apply ih
-      · aesop
-      · intro Y
-        by_cases hY : Y = X
-        · aesop
-        · aesop
+    grind [psubst_openTy_comm, LcTy.fvar]
 
 def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
   match T with
@@ -126,31 +93,16 @@ def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
   | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
   | .all T => T.LcAt (k + 1)
 
-@[aesop unsafe 70% apply]
 theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
     (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by
-  induction T generalizing k with
-  | bvar idx =>
-    simp only [openTy_bvar, beq_iff_eq, Ty.LcAt, Order.lt_add_one_iff] at *
-    by_cases hIdx : idx = k
-    · omega
-    · simp [hIdx, Ty.LcAt] at h
-      omega
-  | fvar name => simp [Ty.LcAt]
-  | arr T₁ T₂ T₁_ih T₂_ih => simp [Ty.LcAt] at *; aesop
-  | all T ih => simp [Ty.LcAt] at *; grind
+  induction T generalizing k with grind [Ty.LcAt]
 
-@[aesop unsafe 70% apply]
 theorem lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
   induction h with
   | fvar x => simp [Ty.LcAt]
-  | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; aesop
+  | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; grind
   | all L T _ ih =>
     have ⟨X, hX⟩ := exists_fresh_name L
-    have := ih X hX
-    have := lcAtTy_of_openTy this
-    simp only [zero_add, Ty.LcAt] at *
-    assumption
-
+    grind [lcAtTy_of_openTy, Ty.LcAt]
 
 end SystemF

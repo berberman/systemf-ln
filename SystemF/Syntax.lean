@@ -6,7 +6,6 @@ namespace SystemF
 
 abbrev Name := String
 
-@[aesop safe forward (immediate := [L])]
 theorem exists_fresh_name (L : Finset Name) : ∃ x, x ∉ L := by
   apply L.exists_not_mem_of_card_lt_enatCard
   simp_all only [ENat.card_eq_top_of_infinite, ENat.coe_lt_top]
@@ -27,21 +26,21 @@ inductive Tm where
   | tLam (t : Tm)
 deriving Repr, DecidableEq
 
-@[simp]
+@[simp, grind =]
 def Ty.size : Ty → ℕ
   | .bvar _ => 1
   | .fvar _ => 1
   | .arr T₁ T₂ => T₁.size + T₂.size + 1
   | .all T => T.size + 1
 
-@[simp]
+@[simp, grind =]
 def Ty.fv : Ty → Finset Name
   | .fvar x => {x}
   | .bvar _ => ∅
   | .all T => fv T
   | .arr T₁ T₂ => T₁.fv ∪ T₂.fv
 
-@[simp]
+@[simp, grind =]
 def Tm.fv : Tm → Finset Name
   | .fvar x => {x}
   | .tLam t => t.fv
@@ -50,7 +49,7 @@ def Tm.fv : Tm → Finset Name
   | .app t₁ t₂ => t₁.fv ∪ t₂.fv
   | .bvar _ => ∅
 
-@[simp]
+@[simp, grind =]
 def Tm.fvTy : Tm → Finset Name
   | .bvar _ => ∅
   | .fvar _ => ∅
