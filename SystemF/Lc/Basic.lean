@@ -26,6 +26,10 @@ inductive LcTm : Tm → Prop where
 
 attribute [cofinite] LcTy.all LcTm.lam LcTm.tLam
 
+attribute [aesop safe apply (rule_sets := [LcRules])]
+  LcTy.fvar LcTy.arr
+  LcTm.fvar LcTm.app LcTm.tApp
+
 attribute [cofinite_support] Ty.fv Tm.fv Tm.fvTy
 
 attribute [grind =] Finset.mem_union Finset.mem_insert Finset.mem_singleton

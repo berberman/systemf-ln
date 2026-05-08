@@ -55,6 +55,7 @@ theorem openTm_substTm_comm {t u v : Tm} {X : Name} {k : ℕ} (hu : LcTm u) :
     (t[X ↦ u])⟪k, v[X ↦ u]⟫ = (t⟪k, v⟫)[X ↦ u]:= by
   induction t generalizing k <;> simp at * <;> grind [openTm_lcTm_id]
 
+@[ln_norm_simps]
 theorem openTm_substTm_comm_of_neq {t u : Tm} {x y : Name} {k : ℕ}
     (hNeq : y ≠ x) (hu : LcTm u) :
     (t[x ↦ u])⟪k, $vy⟫ = (t⟪k, $vy⟫)[x ↦ u] := by

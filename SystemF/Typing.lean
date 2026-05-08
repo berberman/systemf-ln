@@ -182,10 +182,7 @@ theorem typing_weakening {Γ₁ Γ₂ : Context} {t : Tm} {T : Ty} {x : Name} {b
     have hWf_new : WfContext ((Y, .ty) :: Γ₁ ++ (x, b) :: Γ₂) := by
       constructor <;> assumption
     exact ih Y hY₁ hWf_new rfl
-  | tApp Γ t T₁ T₂ _ _ ih =>
-    constructor
-    · apply ih hWf h
-    · assumption
+  | tApp Γ t T₁ T₂ _ _ ih => constructor <;> aesop
 
 
 /-- For `x : T` in `Γ`, substituting free variable `X` with `U` in `Γ`
@@ -300,7 +297,7 @@ theorem typing_subst_ty {Γ₁ Γ₂ : Context} {t : Tm} {T U : Ty} {X : Name}
     rw [substTy_dist_openTy hLcTy]
     constructor
     · aesop
-    · apply substTy_lcTy <;> assumption
+    · ln_norm
 
 /-- Substitution lemma for terms -/
 theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
@@ -309,21 +306,12 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
     (Γ₁ ++ Γ₂) ⊢ (t[x ↦ u]) ∶ T := by
   generalize h : Γ₁ ++ (x, .tm U) :: Γ₂ = Γ at hTyping
   induction hTyping generalizing Γ₁ with
-  | var Γ x' T _ _ _ =>
+  | var Γ x' T hWf mem _ =>
     simp only [substTm_fvar, beq_iff_eq]
     split
-    · simp_all only
-      rename_i hWf mem _ _
-      subst h
-      have : Binding.tm T = Binding.tm U := wf_lookup_mid hWf mem
-      have : T = U := by injection this
-      rw [this]
-      assumption
+    · grind [wf_lookup_mid]
     · subst h
-      constructor
-      · exact typing_regularity_wf hSubstTyping
-      · aesop
-      · assumption
+      constructor <;> grind
   | lam L Γ T₁ T₂ t _ _ ih =>
     simp only [substTm_lam]
     apply HasType.lam (L ∪ {x} ∪ (Context.dom Γ))
@@ -370,7 +358,6 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
     · aesop
   | tApp Γ t T₁ T₂ _ _ ih =>
     constructor
-    apply ih <;> assumption
-    assumption
+    ln_norm
 
 end SystemF

@@ -4,6 +4,9 @@ namespace SystemF
 
 open Notation
 
+attribute [ln_norm_simps] openTm_substTmTy_comm_fresh
+
+@[ln_norm_simps]
 theorem openTmTy_substTmTy_comm {t : Tm} {U : Ty} {X Y : Name} {k : ℕ}
     (hNeq : X ≠ Y) (hU : LcTy U) :
     (t[X ↦ U])⟪k, ($T Y)⟫ = (t⟪k, ($T Y)⟫)[X ↦ U] := by
@@ -38,10 +41,12 @@ theorem openTmTy_lcTm_id {u : Tm} (hu : LcTm u) (k : ℕ) (V : Ty) :
     pick_fresh _
     grind [openTmTy_neq_id]
 
+@[ln_norm_simps]
 theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcTm u) :
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
   induction t generalizing k <;> grind [openTmTy_lcTm_id]
 
+@[aesop safe apply (rule_sets := [LcRules])]
 theorem substTm_lcTm {t u : Tm} {x : Name} (ht : LcTm t) (hu : LcTm u) : LcTm (t[x ↦ u]) := by
   induction ht generalizing x with
   | fvar y => grind [LcTm.fvar]
@@ -60,41 +65,21 @@ theorem substTm_lcTm {t u : Tm} {x : Name} (ht : LcTm t) (hu : LcTm u) : LcTm (t
     apply ih
     grind
 
+@[aesop safe apply (rule_sets := [LcRules])]
 theorem substTmTy_lcTm {t : Tm} {X : Name} {U : Ty} (ht : LcTm t)
     (hU : LcTy U) : LcTm (t[X ↦ U]) := by
-  induction ht generalizing X with
-  | fvar x => simp; constructor
-  | app t₁ t₂ _ _ ih₁ ih₂ => grind [LcTm.app]
-  | lam L T t _ _ ih =>
-    apply_cofinite
-    · apply substTy_lcTy
-      · assumption
-      · assumption
-    · intro y hy
-      -- (t⟪k, u⟫)[X ↦ U]
-      -- (substTmTy X U t⟪$vy⟫)
-      change LcTm ((t[X ↦ U])⟪$vy⟫)
-      grind [openTm_substTmTy_comm_fresh]
-  | tApp t T _ _ ih =>
-    grind [substTy_lcTy, LcTm.tApp]
-  | tLam L t _ ih =>
-    apply_cofinite
-    intro Y hY
-    -- (substTmTy X U t⟪$TY⟫)
-    -- (t⟪$TY⟫)[X ↦ U]
-    change LcTm ((t[X ↦ U])⟪$TY⟫)
-    grind [openTmTy_substTmTy_comm]
+  induction ht generalizing X with ln_norm
 
-@[grind .]
+@[grind ., aesop unsafe 50% apply (rule_sets := [LcRules])]
 theorem openTm_lcTm {t u : Tm} {T : Ty} (ht : LcTm (ƛ T => t)) (hu : LcTm u) :
     LcTm (t⟪u⟫) := by
   cases ht with
   | lam L T t _ h =>
     pick_fresh x
     rw [←substTm_openTm_var (x:= x) (by grind)]
-    grind [substTm_lcTm]
+    ln_norm
 
-@[grind .]
+@[grind ., aesop unsafe 50% apply (rule_sets := [LcRules])]
 theorem openTmTy_lcTm {t : Tm} {U : Ty} (ht : LcTm (Λ' t)) (hU : LcTy U) :
     LcTm (t⟪U⟫) := by
   cases ht with
@@ -117,6 +102,7 @@ theorem psubst_openTmTy_comm {t : Tm} {k} {X : Name} {γ : TmSubst} {δ : TySubs
     (t.psubst γ δ)⟪k, $TX⟫ = (t⟪k, $TX⟫).psubst γ (Function.update δ X ($TX)) := by
   apply psubst_openTmTy_comm' hX hγ hδ
 
+@[aesop safe apply (rule_sets := [LcRules])]
 lemma psubst_lcTm {t : Tm} (ht : LcTm t)
     {γ : TmSubst} {δ : TySubst}
     (hγ : ∀ x, LcTm (γ x))

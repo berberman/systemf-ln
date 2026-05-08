@@ -1,4 +1,4 @@
-import SystemF.Syntax
+import SystemF.Lc.Norm
 import Lean.Elab.Tactic
 import Lean.Meta.Tactic.TryThis
 import Lean.PrettyPrinter
@@ -193,4 +193,26 @@ def evalPickFresh : Tactic := fun stx => withMainContext do
       not_false_eq_true] at $hIdent:ident
   )
   evalTactic tacStx
+
+
+
+syntax (name := ln_norm) "ln_norm" : tactic
+
+@[tactic ln_norm]
+def evalLnNorm : Tactic := fun stx => withMainContext do
+  match stx with
+    | `(tactic| ln_norm) => pure
+    | _ => throwUnsupportedSyntax
+
+  let tacStx ← `(tactic|
+      ( repeat (first
+          | apply_cofinite <;> ln_norm
+          | intro _
+          | simp (discharger := first | grind | aesop) only [ln_norm_simps] at *
+        )
+        try aesop (rule_sets := [LcRules])
+        try grind )
+    )
+  evalTactic tacStx
+
 end SystemF

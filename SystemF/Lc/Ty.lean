@@ -27,11 +27,13 @@ theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
     grind [openTy_neq_id]
 
 /-- Substitution commutes with opening on types -/
+@[ln_norm_simps]
 theorem openTy_substTy_comm {k} {X Y : Name} {T U : Ty} (hNeq : X ≠ Y) (hU : LcTy U) :
     (T[X ↦ U])⟪k, ($T Y)⟫ = (T⟪k, $T Y⟫)[X ↦ U] := by
-  induction T generalizing k <;> grind [openTy_lcTy_id]
+  induction T generalizing k <;> aesop
 
 /-- Substitution preserves locally closedness of types -/
+@[aesop safe apply (rule_sets := [LcRules])]
 theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T[X ↦ U]) := by
   induction hT with
   | fvar x => grind [LcTy.fvar]
@@ -39,7 +41,8 @@ theorem substTy_lcTy {T U : Ty} {X : Name} (hT : LcTy T) (hU : LcTy U) : LcTy (T
   | all L T _ ih =>
     simp only [subst_all]
     apply_cofinite
-    grind [openTy_substTy_comm]
+    intro X hX
+    ln_norm
 
 theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
     (T⟪k, V⟫)[X ↦ U] = (T[X ↦ U])⟪k, V[X ↦ U]⟫ := by
@@ -48,7 +51,7 @@ theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
 /-- If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
   then opening `T` with `U` yields a locally closed type.
 -/
-@[grind .]
+@[grind ., aesop unsafe 50% apply (rule_sets := [LcRules])]
 theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U⟫) := by
   cases hT with
   | all L T h =>
@@ -70,6 +73,7 @@ theorem psubst_openTy_comm {k} {T : Ty} {X : Name} {δ : TySubst}
     (T.psubst δ)⟪k, $TX⟫ = (T⟪k, $TX⟫).psubst (Function.update δ X ($T X)) := by
   apply psubst_openTy_comm' hX hδ
 
+@[aesop safe apply (rule_sets := [LcRules])]
 lemma psubst_lcTy {T : Ty} (hLc : LcTy T) {δ : TySubst}
     (hδ : ∀ X, LcTy (δ X)) : LcTy (T.psubst δ) := by
   induction hLc generalizing δ with
@@ -86,6 +90,7 @@ def Ty.LcAt (T : Ty) (k : ℕ) : Prop :=
   | .fvar _ => True
   | .arr T₁ T₂ => T₁.LcAt k ∧ T₂.LcAt k
   | .all T => T.LcAt (k + 1)
+
 
 theorem lcAtTy_of_openTy {T : Ty} {X : Name} {k : ℕ}
     (h : (T⟪k, $TX⟫).LcAt k) : T.LcAt (k + 1) := by

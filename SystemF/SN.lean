@@ -147,17 +147,14 @@ lemma step_substTmTy {t t' : Tm} {X : Name} {U : Ty}
   | @tLamBody t t' L _ ih =>
     apply_cofinite
     intro Y hY
-    -- substTmTy X U t✝⟪$TY⟫ ⟶ substTmTy X U t'✝⟪$TY⟫
-    change (t[X ↦ U])⟪$TY⟫ ⟶ (t'[X ↦ U])⟪$TY⟫
-    grind [openTmTy_substTmTy_comm]
+    ln_norm
   | @lamBody _ t t' L _ _ ih =>
     apply_cofinite
     · apply substTy_lcTy
       · assumption
       · assumption
     · intro y hy
-      change (t[X ↦ U])⟪$vy⟫ ⟶ (t'[X ↦ U])⟪$vy⟫
-      grind [openTm_substTmTy_comm_fresh]
+      ln_norm
   | appLam _ _ =>
     simp only [substTmTy_app, substTmTy_lam]
     rw [←openTm_substTmTy_comm]
