@@ -529,7 +529,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     · intro v₁ v₂ hVal
       have hLc_v₁ := valRel_candidate hValid |>.lc_left hVal
       have hLc_v₂ := valRel_candidate hValid |>.lc_right hVal
-      have ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+      pick_fresh x
       let γ₁' := Function.update γ₁ x v₁
       let γ₂' := Function.update γ₂ x v₂
       have hEnv' : EnvRel ((x, .tm T₁) :: Γ) ρ δ₁ δ₂ γ₁' γ₂' := by
@@ -606,7 +606,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     · assumption
     · assumption
     · intro R U₁ U₂ hR hLc_U₁ hLc_U₂
-      have ⟨X, hX⟩ := exists_fresh_name (L ∪ t.fvTy ∪ T.fv ∪ Context.fv Γ)
+      pick_fresh X
       let δ₁' := Function.update δ₁ X U₁
       let δ₂' := Function.update δ₂ X U₂
       let ρ' := { ρ with bound := ρ.bound, free := Function.update ρ.free X R }
@@ -689,11 +689,8 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     · have := typing_regularity_ty h
       cases this with
       | all L T h =>
-        have ⟨X, hX⟩ := exists_fresh_name L
-        have := h X hX
-        have := lcAt_zero_of_lcTy this
-        have := lcAtTy_of_openTy this
-        simp [this]
+        pick_fresh X
+        grind [lcAt_zero_of_lcTy, lcAtTy_of_openTy]
 
 def SingletonRel (t : Tm) : TmRel :=
   fun t₁ t₂ => t₁ = t ∧ t₂ = t ∧ LcTm t ∧ Value t

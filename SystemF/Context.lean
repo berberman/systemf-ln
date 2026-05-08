@@ -27,6 +27,8 @@ def Context.fv (Γ : Context) : Finset Name :=
 def Context.dom (Γ : Context) : Finset Name :=
   Γ.foldr (fun ⟨x, _⟩ acc => acc ∪ {x}) ∅
 
+attribute [cofinite_support] Context.dom Context.fv
+
 @[simp]
 lemma dom_nil : Context.dom [] = ∅ := rfl
 

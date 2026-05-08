@@ -1,7 +1,6 @@
 import SystemF.Subst.Ty
 import SystemF.Subst.Parallel
 import SystemF.Lc.Basic
-import SystemF.Lc.Tactic
 
 namespace SystemF
 
@@ -24,7 +23,7 @@ theorem openTy_lcTy_id {U : Ty} (h : LcTy U) (k : ℕ) (V : Ty) :
   | arr T₁ T₂ _ _ ih₁ ih₂ => grind [LcTy.arr]
   | all L T _ ih =>
     simp only [openTy_all, Ty.all.injEq]
-    have ⟨X, hX⟩ := exists_fresh_name L
+    pick_fresh X
     grind [openTy_neq_id]
 
 /-- Substitution commutes with opening on types -/
@@ -52,7 +51,7 @@ theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
 theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U⟫) := by
   cases hT with
   | all L T h =>
-    have ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv)
+    pick_fresh X
     specialize h X (by grind)
     have := substTy_lcTy (X := X) h hU
     rw [←substTy_openTy_var (X := X) (by grind)]
@@ -95,6 +94,8 @@ theorem lcAt_zero_of_lcTy {T : Ty} (h : LcTy T) : T.LcAt 0 := by
   induction h with
   | fvar x => simp [Ty.LcAt]
   | arr T₁ T₂ _ _ _ _ => simp [Ty.LcAt] at *; grind
-  | all L T _ ih => grind [exists_fresh_name L, lcAtTy_of_openTy, Ty.LcAt]
+  | all L T _ ih =>
+    pick_fresh _
+    grind [lcAtTy_of_openTy, Ty.LcAt]
 
 end SystemF

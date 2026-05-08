@@ -32,9 +32,11 @@ theorem openTmTy_lcTm_id {u : Tm} (hu : LcTm u) (k : ℕ) (V : Ty) :
     simp only [openTmTy_lam, Tm.lam.injEq]
     constructor
     · apply openTy_lcTy_id hT
-    · grind [exists_fresh_name L, openTmTy_eq_id]
+    · pick_fresh _; grind [openTmTy_eq_id]
   | tApp t T _ _ ih => grind [openTy_lcTy_id]
-  | tLam L _ _ ih =>  grind [exists_fresh_name L, openTmTy_neq_id]
+  | tLam L _ _ ih =>
+    pick_fresh _
+    grind [openTmTy_neq_id]
 
 theorem openTmTy_substTm_comm {t u : Tm} {x : Name} {V : Ty} {k : ℕ} (hu : LcTm u) :
     (t⟪k, V⟫)[x ↦ u] = (t[x ↦ u])⟪k, V⟫ := by
@@ -88,22 +90,18 @@ theorem openTm_lcTm {t u : Tm} {T : Ty} (ht : LcTm (ƛ T => t)) (hu : LcTm u) :
     LcTm (t⟪u⟫) := by
   cases ht with
   | lam L T t _ h =>
-    have ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+    pick_fresh x
     rw [←substTm_openTm_var (x:= x) (by grind)]
-    apply substTm_lcTm
-    · apply h
-      grind
-    · assumption
+    grind [substTm_lcTm]
 
 @[grind .]
 theorem openTmTy_lcTm {t : Tm} {U : Ty} (ht : LcTm (Λ' t)) (hU : LcTy U) :
     LcTm (t⟪U⟫) := by
   cases ht with
   | tLam L t h =>
-    have ⟨X, hX⟩ := exists_fresh_name (L ∪ t.fvTy)
+    pick_fresh X
     rw [←substTmTy_openTmTy_var (X := X) (by grind)]
-    apply substTmTy_lcTm _ hU
-    grind
+    grind [substTmTy_lcTm]
 
 theorem psubst_openTmTy_comm' {t : Tm} {U : Ty} {k} {X : Name} {γ : TmSubst} {δ : TySubst}
     (hX : X ∉ t.fvTy)

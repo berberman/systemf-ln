@@ -1,4 +1,5 @@
 import SystemF.Subst.TyTm
+import SystemF.Lc.Tactic
 
 namespace SystemF
 
@@ -22,5 +23,11 @@ inductive LcTm : Tm → Prop where
       LcTy T → (∀ x ∉ L, LcTm (t⟪$v x⟫)) → LcTm (ƛ T => t)
   | tApp t T : LcTm t → LcTy T → LcTm (t⦃T⦄)
   | tLam (L : Finset Name) t : (∀ X ∉ L, LcTm (t⟪$T X⟫)) → LcTm (Λ' t)
+
+attribute [cofinite] LcTy.all LcTm.lam LcTm.tLam
+
+attribute [cofinite_support] Ty.fv Tm.fv Tm.fvTy
+
+attribute [grind =] Finset.mem_union Finset.mem_insert Finset.mem_singleton
 
 end SystemF

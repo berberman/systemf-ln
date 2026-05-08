@@ -30,6 +30,8 @@ inductive HasType : Context → Tm → Ty → Prop where
     LcTy T₂ →
     HasType Γ (t⦃T₂⦄) (T₁⟪T₂⟫)
 
+attribute [cofinite] HasType.lam HasType.tLam
+
 scoped notation Γ " ⊢ " t " ∶ " T => HasType Γ t T
 
 /-- Substitute free variable `X` with `U` in a context `Γ` (all types in `Γ` are substituted) -/
@@ -96,9 +98,9 @@ lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
   induction h with
   | var Γ x T _ _ _ => constructor
   | lam L Γ T₁ T₂ t _ _ ih =>
-    apply_cofinite?
+    apply_cofinite
     · assumption
-    · grind
+    · aesop
   | app Γ t₁ t₂ T₁ T₂ _ _ _ _ =>
     constructor <;> assumption
   | tLam L Γ t T _ ih =>
@@ -114,9 +116,8 @@ lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
   | lam L Γ T₁ T₂ t _ _ ih =>
     constructor
     · assumption
-    · have ⟨x, hx⟩ := exists_fresh_name L
-      apply ih
-      exact hx
+    · pick_fresh x
+      grind
   | app Γ t₁ t₂ T₁ T₂ _ _ ih₁ ih₂ =>
     cases ih₁
     assumption
@@ -132,14 +133,14 @@ lemma typing_regularity_wf {Γ t T} (h : Γ ⊢ t ∶ T) : WfContext Γ := by
   induction h with
   | var Γ x T _ _ _ => assumption
   | lam L Γ T₁ T₂ t _ _ ih =>
-    have ⟨x, hx⟩ := exists_fresh_name L
-    specialize ih x hx
+    pick_fresh x
+    specialize ih x (by grind)
     cases ih
     assumption
   | app Γ t₁ t₂ T₁ T₂ _ _ _ _ => assumption
   | tLam L Γ t T _ ih =>
-    have ⟨X, hX⟩ := exists_fresh_name L
-    specialize ih X hX
+    pick_fresh X
+    specialize ih X (by grind)
     exact wf_remove_mid (Γ₁ := []) (Γ₂ := Γ) ih
   | tApp Γ t T₁ T₂ _ _ _ => assumption
 
@@ -153,13 +154,11 @@ theorem typing_weakening {Γ₁ Γ₂ : Context} {t : Tm} {T : Ty} {x : Name} {b
     (Γ₁ ++ (x, b) :: Γ₂) ⊢ t ∶ T := by
   generalize h : Γ₁ ++ Γ₂ = Γ at hTyping
   induction hTyping generalizing Γ₁ with
-  | var Γ x T _ _ _ =>
-    subst h
-    constructor <;> aesop
+  | var Γ x T _ _ _ => constructor <;> grind
   | lam L Γ T₁ T₂ t _ _ ih =>
     subst h
     let ctx := (Γ₁ ++ (x, b) :: Γ₂)
-    apply HasType.lam (L ∪ ctx.dom)
+    apply_cofinite
     · assumption
     · intro y hy
       have hy₁ : y ∉ L := by aesop
@@ -176,7 +175,7 @@ theorem typing_weakening {Γ₁ Γ₂ : Context} {t : Tm} {T : Ty} {x : Name} {b
     let ctx := (Γ₁ ++ (x, b) :: Γ₂)
     apply HasType.tLam (L ∪ ctx.dom)
     intro Y hY
-    have hY₁ : Y ∉ L := by aesop
+    have hY₁ : Y ∉ L := by grind
     have hY₂ : Y ∉ ctx.dom := by aesop
     have hWf_new : WfContext ((Y, .ty) :: Γ₁ ++ (x, b) :: Γ₂) := by
       constructor <;> assumption

@@ -19,7 +19,7 @@ example : ¬ LcTm (ƛ ($T "A") => #v 1) := by
   cases h with
   | lam L T t h₁ h₂ =>
     simp only [openTm_bvar, Nat.reduceBEq, Bool.false_eq_true, ↓reduceIte] at h₂
-    have ⟨x, hx⟩ := exists_fresh_name L
+    pick_fresh x
     specialize h₂ x hx
     cases h₂
 
@@ -41,15 +41,15 @@ theorem openTm_lcTm_id {u : Tm} (h : LcTm u) (k : ℕ) (v : Tm) :
   | app t₁ t₂ _ _ _ _ => grind
   | lam L T t _ _ ih =>
     simp only [openTm_lam, Tm.lam.injEq, true_and]
-    have ⟨x, hx⟩ := exists_fresh_name L
-    have := ih x hx (k + 1) v
+    pick_fresh x
+    have := ih x (by grind) (k + 1) v
     have := @openTm_neq_id (k + 1) 0 t v ($vx) (by grind) (by assumption)
     rw [this]
   | tApp t T _ _ _ => grind
   | tLam L t _ ih =>
     simp only [openTm_tLam, Tm.tLam.injEq]
-    have ⟨X, hX⟩ := exists_fresh_name L
-    specialize ih X hX k v
+    pick_fresh X
+    specialize ih X (by grind) k v
     have := openTm_eq_id ih
     rw [this]
 

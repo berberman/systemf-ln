@@ -23,6 +23,8 @@ inductive Step : Tm → Tm → Prop
   | appLam {T t₁ t₂} : LcTm (ƛ T => t₁) → LcTm t₂ → Step ((ƛ T => t₁) ◦ t₂) (t₁⟪t₂⟫)
   | tAppTLam {T t} : LcTm (Λ' t) → LcTy T → Step ((Λ' t)⦃T⦄) (t⟪T⟫)
 
+attribute [cofinite] Step.tLamBody Step.lamBody
+
 scoped infix:50 " ⟶ " => Step
 scoped infix:50 " ⟶* " => Relation.ReflTransGen Step
 
@@ -108,21 +110,11 @@ lemma step_substTm {t t' u : Tm} {x : Name}
   | tApp₁ _ _ => simp only [substTm_tApp]; apply Step.tApp₁; aesop
   | tLamBody L _ ih =>
     simp only [substTm_tLam]
-    apply Step.tLamBody L
-    intro Y hY
-    simp only [← openTmTy_substTm_comm hu]
-    apply ih
-    · assumption
-    · assumption
+    apply_cofinite
+    grind [openTmTy_substTm_comm]
   | lamBody L hT _ ih =>
     simp only [substTm_lam]
-    apply Step.lamBody (L ∪ {x}) hT
-    intro y hy
-    rw [openTm_substTm_comm_of_neq (by aesop) hu]
-    rw [openTm_substTm_comm_of_neq (by aesop) hu]
-    apply ih
-    · aesop
-    · assumption
+    apply_cofinite <;> grind [openTm_substTm_comm_of_neq]
   | appLam h _ =>
     simp only [substTm_app, substTm_lam]
     rw [←openTm_substTm_comm hu]
@@ -153,27 +145,19 @@ lemma step_substTmTy {t t' : Tm} {X : Name} {U : Ty}
   | app₂ _ _ => simp only [substTmTy_app]; apply Step.app₂; aesop
   | tApp₁ _ _ => simp only [substTmTy_tApp]; apply Step.tApp₁; aesop
   | @tLamBody t t' L _ ih =>
-    apply Step.tLamBody (L ∪ {X})
+    apply_cofinite
     intro Y hY
     -- substTmTy X U t✝⟪$TY⟫ ⟶ substTmTy X U t'✝⟪$TY⟫
     change (t[X ↦ U])⟪$TY⟫ ⟶ (t'[X ↦ U])⟪$TY⟫
-    rw [openTmTy_substTmTy_comm (by aesop) hU]
-    rw [openTmTy_substTmTy_comm (by aesop) hU]
-    apply ih
-    · aesop
-    · assumption
+    grind [openTmTy_substTmTy_comm]
   | @lamBody _ t t' L _ _ ih =>
-    apply Step.lamBody (L ∪ {X})
+    apply_cofinite
     · apply substTy_lcTy
       · assumption
       · assumption
     · intro y hy
       change (t[X ↦ U])⟪$vy⟫ ⟶ (t'[X ↦ U])⟪$vy⟫
-      rw [openTm_substTmTy_comm_fresh (by aesop)]
-      rw [openTm_substTmTy_comm_fresh (by aesop)]
-      apply ih
-      · aesop
-      · assumption
+      grind [openTm_substTmTy_comm_fresh]
   | appLam _ _ =>
     simp only [substTmTy_app, substTmTy_lam]
     rw [←openTm_substTmTy_comm]
@@ -202,7 +186,7 @@ lemma step_lamBody_openTm
     (hBody : ∀ x ∉ L, (t⟪$vx⟫) ⟶ (t'⟪$vx⟫))
     (hu : LcTm u) :
     (t⟪u⟫) ⟶ (t'⟪u⟫) := by
-  obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv ∪ t'.fv)
+  pick_fresh x
   have := hBody x (by aesop)
   have := step_substTm (x := x) this hu
   rw [substTm_openTm_var (by aesop)] at this
@@ -214,7 +198,7 @@ lemma step_tLamBody_openTmTy
     (hBody : ∀ X ∉ L, (t⟪$TX⟫) ⟶ (t'⟪$TX⟫))
     (hU : LcTy U) :
     (t⟪U⟫) ⟶ (t'⟪U⟫) := by
-  obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ t.fvTy ∪ t'.fvTy)
+  pick_fresh X
   have := hBody X (by aesop)
   have := step_substTmTy (X := X) this hU
   rw [substTmTy_openTmTy_var (by aesop)] at this
@@ -679,7 +663,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     · intro u' hSteps
       have hRC₁ := interp_soundness T₁ hValid
       have hu' : u' ∈ T₁.interp ρ := hRC₁.cr₂_multi hu hSteps
-      obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
+      pick_fresh x
       let γ' := Function.update γ x u'
       have hEnv' : EnvRel ((x, .tm T₁) :: Γ) ρ δ γ' := by
         constructor
@@ -718,7 +702,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
   | tLam L Γ t T h ih =>
     simp only [Ty.interp, all_set, Tm.psubst, Set.mem_setOf_eq]
     intro S hS U hLc_U
-    obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T.fv ∪ t.fvTy ∪ Context.fv Γ)
+    pick_fresh X
     let δ' := Function.update δ X U
     let ρ' := { ρ with free := Function.update ρ.free X S }
     have hEnv' : EnvRel ((X, Binding.ty) :: Γ) ρ' δ' γ := by
@@ -729,8 +713,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
         · simp only [Function.update, hXY, ↓reduceDIte, eq_rec_constant, Function.update_self, δ',
           ρ']
           exact ⟨hS, hLc_U⟩
-        · simp only [Finset.union_assoc, Finset.mem_union, not_or, hXY, false_or,
-          not_false_eq_true, ne_eq, Function.update_of_ne, δ', ρ'] at *
+        · simp only [hXY, false_or, not_false_eq_true, ne_eq, Function.update_of_ne, δ', ρ'] at *
           exact hEnv.ty_rel hY
       · intro y U hy
         simp only [List.mem_cons] at hy
@@ -767,7 +750,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     apply RC_tApp_tLam
     · apply interp_soundness
       apply semEnv_valid_extend_bound hValid hS
-    · apply LcTm.tLam (L ∪ t.fvTy)
+    · apply_cofinite
       intro Y hY
       rw [psubst_openTmTy_comm (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)]
       apply psubst_lcTm
@@ -796,10 +779,8 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     have hLc_T₁ : T₁.LcAt 1 := by
       cases hLc_all with
       | all L T h =>
-        obtain ⟨X, hX⟩ := exists_fresh_name L
-        have := h X hX
-        apply lcAtTy_of_openTy
-        apply lcAt_zero_of_lcTy this
+        pick_fresh X
+        grind [lcAtTy_of_openTy, lcAt_zero_of_lcTy]
     rw [interp_openTy_bound hLc_T₁ (lcAt_zero_of_lcTy (by assumption))] at this
     exact this
 

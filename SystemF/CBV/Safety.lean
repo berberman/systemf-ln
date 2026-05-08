@@ -25,9 +25,9 @@ theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
     | app Γ t₁ t₂ T₁ T₂ hT₁ hT₂ =>
       cases hT₁ with
       | lam L Γ T₁ T₂ t _ hBody =>
-        obtain ⟨x, hx⟩ := exists_fresh_name (L ∪ t.fv)
-        have hx₁ : x ∉ L := by aesop
-        have hx₂ : x ∉ t.fv := by aesop
+        pick_fresh x
+        have hx₁ : x ∉ L := by grind
+        have hx₂ : x ∉ t.fv := by grind
         rw [←substTm_openTm_var hx₂]
         have := hBody x hx₁
         have := typing_subst_tm (Γ₁ := []) (Γ₂ := Γ) this (by aesop)
@@ -38,11 +38,11 @@ theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
     | tApp Γ t T₁ T₂ hT₁ _ =>
       cases hT₁ with
       | tLam L Γ t T hBody =>
-        obtain ⟨X, hX⟩ := exists_fresh_name (L ∪ T₁.fv ∪ t.fvTy ∪ Γ.fv)
-        have hX₁ : X ∉ L := by aesop
-        have hX₂ : X ∉ T₁.fv := by aesop
-        have hX₃ : X ∉ t.fvTy := by aesop
-        have hX₄ : X ∉ Γ.fv := by aesop
+        pick_fresh X
+        have hX₁ : X ∉ L := by grind
+        have hX₂ : X ∉ T₁.fv := by grind
+        have hX₃ : X ∉ t.fvTy := by grind
+        have hX₄ : X ∉ Γ.fv := by grind
         rw [←substTy_openTy_var hX₂]
         rw [←substTmTy_openTmTy_var hX₃]
         have := hBody X hX₁

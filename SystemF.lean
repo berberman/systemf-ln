@@ -8,4 +8,4 @@ import SystemF.Examples
 import SystemF.CBV.Semantics
 import SystemF.CBV.Safety
 import SystemF.CBV.Parametricity
-import SystemF.CBV.SN
+import SystemF.SN
