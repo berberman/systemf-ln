@@ -187,11 +187,9 @@ lemma step_lamBody_openTm
     (hu : LcTm u) :
     (t⟪u⟫) ⟶ (t'⟪u⟫) := by
   pick_fresh x
-  have := hBody x (by aesop)
+  have := hBody x (by grind)
   have := step_substTm (x := x) this hu
-  rw [substTm_openTm_var (by aesop)] at this
-  rw [substTm_openTm_var (by aesop)] at this
-  exact this
+  grind
 
 lemma step_tLamBody_openTmTy
     {L : Finset Name} {t t' : Tm} {U : Ty}
@@ -199,11 +197,9 @@ lemma step_tLamBody_openTmTy
     (hU : LcTy U) :
     (t⟪U⟫) ⟶ (t'⟪U⟫) := by
   pick_fresh X
-  have := hBody X (by aesop)
+  have := hBody X (by grind)
   have := step_substTmTy (X := X) this hU
-  rw [substTmTy_openTmTy_var (by aesop)] at this
-  rw [substTmTy_openTmTy_var (by aesop)] at this
-  exact this
+  grind
 
 lemma fvar_in_RC {X : Name} {S : Set Tm} (h : RC S) : $vX ∈ S := by
   apply h.cr₃

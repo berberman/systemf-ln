@@ -7,7 +7,6 @@ namespace SystemF
 open Notation
 
 /-- Typing relation -/
-@[aesop unsafe cases 20%]
 inductive HasType : Context → Tm → Ty → Prop where
   | var Γ x T :
     WfContext Γ →
@@ -94,6 +93,7 @@ lemma substCtx_tm_mem {Γ : Context} {x : Name} {T U : Ty} {X : Name}
   exact List.mem_map_of_mem h
 
 /-- Well-typed terms are locally closed terms. -/
+@[grind →]
 lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
   induction h with
   | var Γ x T _ _ _ => constructor
@@ -110,6 +110,7 @@ lemma typing_regularity_tm {Γ t T} (h : Γ ⊢ t ∶ T) : LcTm t := by
     constructor <;> assumption
 
 /-- Well-typed terms have locally closed types. -/
+@[grind →]
 lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
   induction h with
   | var Γ x T _ _ _ => assumption
@@ -129,6 +130,7 @@ lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
     assumption
 
 /-- Well-typed terms have well-formed contexts. -/
+@[grind →]
 lemma typing_regularity_wf {Γ t T} (h : Γ ⊢ t ∶ T) : WfContext Γ := by
   induction h with
   | var Γ x T _ _ _ => assumption

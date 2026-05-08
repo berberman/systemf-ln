@@ -86,21 +86,19 @@ lemma substTmTy_fresh {t : Tm} {X : Name} {U : Ty} (h : X ∉ t.fvTy) :
     t[X ↦ U] = t := by
   induction t <;> grind [substTy_fresh]
 
-@[simp]
 theorem openTm_substTmTy_comm {t u : Tm} {X : Name} {U : Ty} {k : ℕ} :
     (t[X ↦ U])⟪k, u[X ↦ U]⟫ = (t⟪k, u⟫)[X ↦ U]:= by
   induction t generalizing k <;> grind
 
-@[simp]
 theorem openTm_substTmTy_comm_fresh {t u : Tm} {X : Name} {U : Ty} {k : ℕ} (h : X ∉ u.fvTy) :
      (t[X ↦ U])⟪k, u⟫ = (t⟪k, u⟫)[X ↦ U] := by
   rw [←substTmTy_fresh h]
   rw [openTm_substTmTy_comm]
   rw [substTmTy_fresh h]
 
-
+@[grind =]
 theorem substTmTy_openTmTy_var {t : Tm} {U : Ty} {X : Name} {k : ℕ} (h : X ∉ t.fvTy) :
     (t⟪k, $T X⟫)[X ↦ U] = t⟪k, U⟫ := by
-  induction t generalizing k <;> grind [substTy_openTy_var]
+  induction t generalizing k <;> grind
 
 end SystemF

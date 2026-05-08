@@ -23,12 +23,10 @@ example : ¬ LcTm (ƛ ($T "A") => #v 1) := by
     specialize h₂ x hx
     cases h₂
 
-@[aesop safe forward]
 theorem openTm_neq_id {k j : ℕ} {t u v : Tm} (hNeq : k ≠ j) (h : t⟪j, v⟫⟪k, u⟫ = t⟪j, v⟫) :
     t⟪k, u⟫ = t := by
   induction t generalizing k j <;> simp at * <;> grind
 
-@[aesop safe forward]
 theorem openTm_eq_id {k j : ℕ} {t v : Tm} {U : Ty} (h : t⟪j, U⟫⟪k, v⟫ = t⟪j, U⟫) :
     t⟪k, v⟫ = t := by
   induction t generalizing k j <;> simp at * <;> grind
@@ -57,7 +55,6 @@ theorem openTm_substTm_comm {t u v : Tm} {X : Name} {k : ℕ} (hu : LcTm u) :
     (t[X ↦ u])⟪k, v[X ↦ u]⟫ = (t⟪k, v⟫)[X ↦ u]:= by
   induction t generalizing k <;> simp at * <;> grind [openTm_lcTm_id]
 
-@[aesop safe forward]
 theorem openTm_substTm_comm_of_neq {t u : Tm} {x y : Name} {k : ℕ}
     (hNeq : y ≠ x) (hu : LcTm u) :
     (t[x ↦ u])⟪k, $vy⟫ = (t⟪k, $vy⟫)[x ↦ u] := by

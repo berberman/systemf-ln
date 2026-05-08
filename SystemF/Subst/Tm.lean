@@ -83,6 +83,7 @@ lemma substTm_fresh {t : Tm} {X : Name} {u : Tm} (h : X ∉ t.fv) :
     t[X ↦ u] = t := by
   induction t <;> grind
 
+@[grind =]
 theorem substTm_openTm_var {t u : Tm} {x : Name} {k : ℕ} (h : x ∉ t.fv) :
     (t⟪k, $v x⟫)[x ↦ u] = t⟪k, u⟫ := by
   induction t generalizing k <;> grind

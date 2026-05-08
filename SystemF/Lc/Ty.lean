@@ -48,6 +48,7 @@ theorem substTy_dist_openTy {T U V : Ty} {X : Name} {k : ℕ} (hU : LcTy U) :
 /-- If `∀' T` is locally closed (meaning `T` is not closed) and `U` is locally closed,
   then opening `T` with `U` yields a locally closed type.
 -/
+@[grind .]
 theorem openTy_lcTy {T U : Ty} (hT : LcTy (∀' T)) (hU : LcTy U) : LcTy (T⟪U⟫) := by
   cases hT with
   | all L T h =>

@@ -58,7 +58,7 @@ instance : Subst Ty Ty where
 /-- Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
   opening `T` with `U`, as long as `X` is not free in `T`.
 -/
-@[simp]
+@[grind =]
 theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
   induction T generalizing k <;> simp at * <;> grind
@@ -69,12 +69,5 @@ lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
     T[X ↦ U] = T := by
   induction T <;> simp at * <;> grind
 
-/-- Opening a type with a free variable preserves the size of the type.
-  Useful for showing termination.
--/
-@[simp]
-lemma openTy_size_fvar {T : Ty} {k : ℕ} {X : Name} :
-    (T⟪k, $T X⟫).size = T.size := by
-  induction T generalizing k <;> simp at * <;> grind
 
 end SystemF
