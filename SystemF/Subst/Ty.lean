@@ -5,69 +5,67 @@ namespace SystemF
 open Notation
 
 /-- Open `T` with `U` at index `k`. -/
-def openTy (k : ℕ) (U T : Ty) : Ty :=
+def Ty.open (T : Ty) (k : ℕ) (U : Ty) : Ty :=
   match T with
   | .bvar x => if x == k then U else .bvar x
-  | .arr T₁ T₂ => .arr (openTy k U T₁) (openTy k U T₂)
-  | .all T => .all (openTy (k + 1) U T)
+  | .arr T₁ T₂ => .arr (T₁.open k U) (T₂.open k U)
+  | .all T => .all (T.open (k + 1) U)
   | .fvar x => .fvar x
 
 instance : Open Ty Ty where
-  «open» := openTy
+  «open» k U T := T.open k U
 
 @[simp, grind =]
-lemma openTy_bvar {k : ℕ} {U : Ty} {x : ℕ} :
+lemma Ty.open_bvar {k : ℕ} {U : Ty} {x : ℕ} :
   (#T x)⟪k, U⟫ = if x == k then U else #T x := rfl
 
 @[simp, grind =]
-lemma openTy_fvar {k : ℕ} {U : Ty} {X : Name} :
+lemma Ty.open_fvar {k : ℕ} {U : Ty} {X : Name} :
   ($T X)⟪k, U⟫ = $T X := rfl
 
 @[simp, grind =]
-lemma openTy_arr {k : ℕ} {U T₁ T₂ : Ty} :
+lemma Ty.open_arr {k : ℕ} {U T₁ T₂ : Ty} :
   (T₁ ⇒ T₂)⟪k, U⟫ = (T₁⟪k, U⟫ ⇒ T₂⟪k, U⟫) := rfl
 
 @[simp, grind =]
-lemma openTy_all {k : ℕ} {U T : Ty} :
+lemma Ty.open_all {k : ℕ} {U T : Ty} :
   (∀' T)⟪k, U⟫ = ∀' (T⟪k + 1, U⟫) := rfl
 
-
 /-- Substitute free type variable `X` with `U` in `T` -/
-def substTy (X : Name) (U T : Ty) : Ty :=
+def Ty.subst (T : Ty) (X : Name) (U : Ty) : Ty :=
   match T with
-  | .bvar x => Ty.bvar x
+  | .bvar x => .bvar x
   | .fvar Y => if X == Y then U else .fvar Y
-  | .arr T₁ T₂ => .arr (substTy X U T₁) (substTy X U T₂)
-  | .all T => Ty.all (substTy X U T)
+  | .arr T₁ T₂ => .arr (T₁.subst X U) (T₂.subst X U)
+  | .all T => .all (T.subst X U)
 
 instance : Subst Ty Ty where
-  subst := substTy
+  subst X U T := T.subst X U
 
-@[simp, grind =] lemma subst_bvar (X : Name) (U : Ty) (x : ℕ) :
+@[simp, grind =] lemma Ty.subst_bvar (X : Name) (U : Ty) (x : ℕ) :
   (Ty.bvar x)[X ↦ U] = Ty.bvar x := rfl
 
-@[simp, grind =] lemma subst_fvar (X : Name) (U : Ty) (Y : Name) :
+@[simp, grind =] lemma Ty.subst_fvar (X : Name) (U : Ty) (Y : Name) :
   (Ty.fvar Y)[X ↦ U] = if X == Y then U else Ty.fvar Y := rfl
 
-@[simp, grind =] lemma subst_arr (X : Name) (U T₁ T₂ : Ty) :
+@[simp, grind =] lemma Ty.subst_arr (X : Name) (U T₁ T₂ : Ty) :
   (Ty.arr T₁ T₂)[X ↦ U] = Ty.arr (T₁[X ↦ U]) (T₂[X ↦ U]) := rfl
 
-@[simp, grind =] lemma subst_all (X : Name) (U T : Ty) :
+@[simp, grind =] lemma Ty.subst_all (X : Name) (U T : Ty) :
   (Ty.all T)[X ↦ U] = Ty.all (T[X ↦ U]) := rfl
 
 /-- Opening `T` with free variable `X` and then substituting `X` with `U` is the same as
   opening `T` with `U`, as long as `X` is not free in `T`.
 -/
 @[grind =]
-theorem substTy_openTy_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
+theorem Ty.subst_open_var {k} {T U : Ty} {X : Name} (h : X ∉ T.fv) :
     (T⟪k, ($T X)⟫)[X ↦ U] = T⟪k, U⟫ := by
   induction T generalizing k <;> simp at * <;> grind
 
 /-- Substituting a free variable that is not free in the type does nothing. -/
 @[simp]
-lemma substTy_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
+lemma Ty.subst_fresh {T : Ty} {X : Name} {U : Ty} (h : X ∉ T.fv) :
     T[X ↦ U] = T := by
-  induction T <;> simp at * <;> grind
-
+  induction T <;> grind
 
 end SystemF

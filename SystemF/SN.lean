@@ -105,33 +105,33 @@ lemma step_substTm {t t' u : Tm} {x : Name}
     (hu : LcTm u) :
     (t[x ↦ u]) ⟶ (t'[x ↦ u]) := by
   induction hStep generalizing u with
-  | app₁ _ _ => simp only [substTm_app]; apply Step.app₁; aesop
-  | app₂ _ _ => simp only [substTm_app]; apply Step.app₂; aesop
-  | tApp₁ _ _ => simp only [substTm_tApp]; apply Step.tApp₁; aesop
+  | app₁ _ _ => simp only [Tm.subst_app]; apply Step.app₁; aesop
+  | app₂ _ _ => simp only [Tm.subst_app]; apply Step.app₂; aesop
+  | tApp₁ _ _ => simp only [Tm.subst_tApp]; apply Step.tApp₁; aesop
   | tLamBody L _ ih =>
-    simp only [substTm_tLam]
+    simp only [Tm.subst_tLam]
     apply_cofinite
-    grind [openTmTy_substTm_comm]
+    grind [Tm.openTy_subst_comm]
   | lamBody L hT _ ih =>
-    simp only [substTm_lam]
-    apply_cofinite <;> grind [openTm_substTm_comm_of_neq]
+    simp only [Tm.subst_lam]
+    apply_cofinite <;> grind [Tm.open_subst_comm_of_neq]
   | appLam h _ =>
-    simp only [substTm_app, substTm_lam]
-    rw [←openTm_substTm_comm hu]
+    simp only [Tm.subst_app, Tm.subst_lam]
+    rw [←Tm.open_subst_comm hu]
     apply Step.appLam
-    · rw [←substTm_lam]
-      apply substTm_lcTm
+    · rw [←Tm.subst_lam]
+      apply Tm.subst_lc
       · assumption
       · assumption
-    · apply substTm_lcTm
+    · apply Tm.subst_lc
       · assumption
       · assumption
   | tAppTLam _ _ =>
-    simp only [substTm_tApp, substTm_tLam]
-    rw [openTmTy_substTm_comm hu]
+    simp only [Tm.subst_tApp, Tm.subst_tLam]
+    rw [Tm.openTy_subst_comm hu]
     apply Step.tAppTLam
-    · rw [←substTm_tLam]
-      apply substTm_lcTm
+    · rw [←Tm.subst_tLam]
+      apply Tm.subst_lc
       · assumption
       · assumption
     · assumption
@@ -141,40 +141,40 @@ lemma step_substTmTy {t t' : Tm} {X : Name} {U : Ty}
     (hU : LcTy U) :
     (t[X ↦ U]) ⟶ (t'[X ↦ U]) := by
   induction hStep generalizing U with
-  | app₁ _ _ => simp only [substTmTy_app]; apply Step.app₁; aesop
-  | app₂ _ _ => simp only [substTmTy_app]; apply Step.app₂; aesop
-  | tApp₁ _ _ => simp only [substTmTy_tApp]; apply Step.tApp₁; aesop
+  | app₁ _ _ => simp only [Tm.substTy_app]; apply Step.app₁; aesop
+  | app₂ _ _ => simp only [Tm.substTy_app]; apply Step.app₂; aesop
+  | tApp₁ _ _ => simp only [Tm.substTy_tApp]; apply Step.tApp₁; aesop
   | @tLamBody t t' L _ ih =>
     apply_cofinite
     intro Y hY
     ln_norm
   | @lamBody _ t t' L _ _ ih =>
     apply_cofinite
-    · apply substTy_lcTy
+    · apply Ty.subst_lc
       · assumption
       · assumption
     · intro y hy
       ln_norm
   | appLam _ _ =>
-    simp only [substTmTy_app, substTmTy_lam]
-    rw [←openTm_substTmTy_comm]
+    simp only [Tm.substTy_app, Tm.substTy_lam]
+    rw [←Tm.open_substTy_comm]
     apply Step.appLam
-    · rw [←substTmTy_lam]
-      apply substTmTy_lcTm
+    · rw [←Tm.substTy_lam]
+      apply Tm.substTy_lc
       · assumption
       · assumption
-    · apply substTmTy_lcTm
+    · apply Tm.substTy_lc
       · assumption
       · assumption
   | tAppTLam _ _ =>
-    simp only [substTmTy_tApp, substTmTy_tLam]
-    rw [←openTmTy_substTmTy_comm' hU]
+    simp only [Tm.substTy_tApp, Tm.substTy_tLam]
+    rw [←Tm.openTy_substTy_comm_of_lc hU]
     apply Step.tAppTLam
-    · rw [←substTmTy_tLam]
-      apply substTmTy_lcTm
+    · rw [←Tm.substTy_tLam]
+      apply Tm.substTy_lc
       · assumption
       · assumption
-    · apply substTy_lcTy
+    · apply Ty.subst_lc
       · assumption
       · assumption
 
@@ -390,6 +390,7 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ : TySubst) (γ : TmSubst) : Pr
   /-- The term substitution is locally closed -/
   γ_lc : ∀ x, LcTm (γ x)
 
+set_option linter.flexible false in
 @[simp]
 lemma envRel_empty : EnvRel [] SemEnv.empty TySubst.empty TmSubst.empty := by
   constructor <;> simp [SemEnv.empty, TySubst.empty, TmSubst.empty] <;> try intro; constructor
@@ -508,18 +509,18 @@ lemma interp_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {S : Set
     · simp [Ty.interp]
       grind
   | fvar name =>
-    simp only [Ty.fv, Finset.mem_singleton, openTy_fvar] at *
+    simp only [Ty.fv, Finset.mem_singleton, Ty.open_fvar] at *
     have : name ≠ X := by aesop
     simp [Ty.interp, this]
   | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [Ty.interp, openTy_arr]
+    simp only [Ty.interp, Ty.open_arr]
     simp only [Ty.fv, Finset.mem_union, not_or] at hX
     simp only [Ty.LcAt] at hLcT
     aesop
   | all T ih =>
     simp only [Ty.LcAt] at hLcT
     simp only [Ty.fv] at hX
-    simp only [Ty.interp, openTy_all]
+    simp only [Ty.interp, Ty.open_all]
     funext t
     congr
     funext S'
@@ -585,10 +586,10 @@ lemma interp_openTy_bound_at {T U : Ty} {k : ℕ} {ρ : SemEnv}
   | fvar name => simp [Ty.interp]
   | arr T₁ T₂ T₁_ih T₂_ih =>
     simp [Ty.LcAt] at hLcT
-    simp [Ty.interp, openTy_arr, T₁_ih hk hLcT.1, T₂_ih hk hLcT.2]
+    simp [Ty.interp, Ty.open_arr, T₁_ih hk hLcT.1, T₂_ih hk hLcT.2]
   | all T ih =>
     simp only [Ty.LcAt] at hLcT
-    simp only [Ty.interp, openTy_all]
+    simp only [Ty.interp, Ty.open_all]
     funext t
     congr
     funext S'
@@ -643,7 +644,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
         · assumption
         · exact hEnv.δ_lc
       · intro x hx
-        rw [psubst_openTm_comm (by aesop) (hEnv.γ_lc)]
+        rw [Tm.psubst_open_comm (by aesop) (hEnv.γ_lc)]
         apply psubst_lcTm
         · exact h x (by aesop) |> typing_regularity_tm
         · intro y
@@ -682,7 +683,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
           · simp only [ne_eq, hy, not_false_eq_true, Function.update_of_ne, γ']
             apply hEnv.γ_lc
       have := ih x (by aesop) hValid hEnv'
-      rw [←psubst_openTm_comm'] at this
+      rw [←Tm.psubst_open_comm_update] at this
       · assumption
       · aesop
       · exact hEnv.γ_lc
@@ -735,17 +736,17 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
     have := ih X (by aesop) hValid' hEnv'
     have hLcAt_t : T.LcAt 1 := by
       have := h X (by aesop) |> typing_regularity_ty
-      have := lcAt_zero_of_lcTy this
-      have := lcAtTy_of_openTy this
+      have := Ty.lcAt_zero_of_lc this
+      have := Ty.lcAt_of_open this
       simp [this]
-    rw [←psubst_openTmTy_comm' (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)] at this
+    rw [←Tm.psubst_openTy_comm_update (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)] at this
     rw [←interp_openTy_fvar (by aesop) hLcAt_t] at this
     apply RC_tApp_tLam
     · apply interp_soundness
       apply semEnv_valid_extend_bound hValid hS
     · apply_cofinite
       intro Y hY
-      rw [psubst_openTmTy_comm (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)]
+      rw [Tm.psubst_openTy_comm (by aesop) (hEnv.γ_lc) (hEnv.δ_lc)]
       apply psubst_lcTm
       · have := h Y (by aesop) |> typing_regularity_tm
         apply this
@@ -773,8 +774,8 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T) {ρ δ γ}
       cases hLc_all with
       | all L T h =>
         pick_fresh X
-        grind [lcAtTy_of_openTy, lcAt_zero_of_lcTy]
-    rw [interp_openTy_bound hLc_T₁ (lcAt_zero_of_lcTy (by assumption))] at this
+        grind [Ty.lcAt_of_open, Ty.lcAt_zero_of_lc]
+    rw [interp_openTy_bound hLc_T₁ (Ty.lcAt_zero_of_lc (by assumption))] at this
     exact this
 
 theorem strongly_normalizing {t T} (hTyp : ∅ ⊢ t ∶ T) : SN t := by

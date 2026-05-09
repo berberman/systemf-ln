@@ -15,14 +15,14 @@ inductive HasType : Context → Tm → Ty → Prop where
     HasType Γ ($v x) T
   | lam (L : Finset Name) Γ T₁ T₂ t :
     LcTy T₁ →
-    (∀ x ∉ L, HasType ((x, .tm T₁) :: Γ) (t⟪$v x⟫) T₂) →
+    (∀ x ∉ L, HasType ((x, .tm T₁) :: Γ) (t⟪$vx⟫) T₂) →
     HasType Γ (ƛ T₁ => t) (T₁ ⇒ T₂)
   | app Γ t₁ t₂ T₁ T₂ :
     HasType Γ t₁ (T₁ ⇒ T₂) →
     HasType Γ t₂ T₁ →
     HasType Γ (t₁ ◦ t₂) T₂
   | tLam (L : Finset Name) Γ t T :
-    (∀ X ∉ L, HasType ((X, .ty) :: Γ) (t⟪$T X⟫) (T⟪$T X⟫)) →
+    (∀ X ∉ L, HasType ((X, .ty) :: Γ) (t⟪$TX⟫) (T⟪$TX⟫)) →
     HasType Γ (Λ' t) (∀' T)
   | tApp Γ t T₁ T₂ :
     HasType Γ t (∀' T₁) →
@@ -38,7 +38,7 @@ def substCtx (X : Name) (U : Ty) (Γ : Context) : Context :=
   Γ.map (fun ⟨y, b⟩ =>
     match b with
     | .ty => (y, .ty)
-    | .tm T => (y, .tm (substTy X U T))
+    | .tm T => (y, .tm (T.subst X U))
   )
 
 instance : Subst Ty Context where
@@ -73,7 +73,7 @@ lemma substCtx_fresh {Γ : Context} {X : Name} {U : Ty} (h : X ∉ Γ.fv) :
       simp only [substCtx_cons_tm, List.cons.injEq, Prod.mk.injEq, Binding.tm.injEq, true_and]
       simp only [Context.fv, List.foldr_cons, Finset.mem_union, not_or] at *
       constructor
-      · rw [substTy_fresh h.2]
+      · rw [Ty.subst_fresh h.2]
       · aesop
 
 lemma substCtx_append {Γ₁ Γ₂ : Context} {X : Name} {U : Ty} :
@@ -126,8 +126,7 @@ lemma typing_regularity_ty {Γ t T} (h : Γ ⊢ t ∶ T) : LcTy T := by
     apply_cofinite
     grind
   | tApp Γ t T₁ T₂ _ _ ih =>
-    apply openTy_lcTy ih
-    assumption
+    ln_norm
 
 /-- Well-typed terms have well-formed contexts. -/
 @[grind →]
@@ -235,7 +234,7 @@ lemma substCtx_wf {Γ : Context} {X : Name} {U : Ty}
     · assumption
     · simp only [substCtx_dom]
       assumption
-    · exact substTy_lcTy hLc hU
+    · exact Ty.subst_lc hLc hU
 
 /-- Substitution lemma for types -/
 theorem typing_subst_ty {Γ₁ Γ₂ : Context} {t : Tm} {T U : Ty} {X : Name}
@@ -264,37 +263,37 @@ theorem typing_subst_ty {Γ₁ Γ₂ : Context} {t : Tm} {T U : Ty} {X : Name}
         right
         apply substCtx_tm_mem
         assumption
-    · exact substTy_lcTy h₂ hLcTy
+    · exact Ty.subst_lc h₂ hLcTy
   | lam L Γ T₁ T₂ t h₁ h₂ ih =>
     subst h
     apply HasType.lam (L ∪ {X} ∪ U.fv)
-    · exact substTy_lcTy h₁ hLcTy
+    · exact Ty.subst_lc h₁ hLcTy
     · intro y hy
       have hy₁ : y ∉ L := by aesop
-      -- ((y, .tm (substTy X U T₁)) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢
-      --  substTmTy X U t⟪$vy⟫ ∶ substTy X U T₂
+      -- ((y, .tm (T₁.subst X U)) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢
+      --  t.substTy X U⟪$vy⟫ ∶ T₂.subst X U
       change ((y, .tm T₁[X ↦ U]) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢ (t[X ↦ U])⟪$vy⟫ ∶ (T₂[X ↦ U])
       have := ih (Γ₁ := (y, Binding.tm T₁) :: Γ₁) y hy₁ rfl
-      rw [openTm_substTmTy_comm_fresh]
+      rw [Tm.open_substTy_comm_fresh]
       · exact this
       simp [Tm.fvTy]
   | app Γ t₁ t₂ T₁ T₂ _ _ ih₁ ih₂ =>
-    simp only [substTmTy_app]
+    simp only [Tm.substTy_app]
     constructor <;> aesop
   | tLam L Γ t T _ ih =>
     subst h
     apply HasType.tLam (L ∪ {X} ∪ U.fv)
     intro Y hY
-    -- ((Y, .ty) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢ substTmTy X U t⟪$TY⟫ ∶ substTy X U T⟪$TY⟫
+    -- ((Y, .ty) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢ t.substTy X U⟪$TY⟫ ∶ T.subst X U⟪$TY⟫
     change ((Y, .ty) :: (Γ₁[X ↦ U] ++ Γ₂[X ↦ U])) ⊢ (t[X ↦ U])⟪$TY⟫ ∶ (T[X ↦ U])⟪$TY⟫
     have hY₁ : Y ∉ L := by aesop
     have hY₂ : X ≠ Y := by aesop
-    rw [openTy_substTy_comm hY₂ hLcTy]
-    rw [openTmTy_substTmTy_comm hY₂ hLcTy]
+    rw [Ty.open_subst_comm hY₂ hLcTy]
+    rw [Tm.openTy_substTy_comm hY₂ hLcTy]
     have := ih (Γ₁ := (Y, .ty) :: Γ₁) Y hY₁ rfl
     exact this
   | tApp Γ t T₁ T₂ _ _ ih =>
-    rw [substTy_dist_openTy hLcTy]
+    rw [Ty.subst_dist_open hLcTy]
     constructor
     · aesop
     · ln_norm
@@ -307,13 +306,13 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
   generalize h : Γ₁ ++ (x, .tm U) :: Γ₂ = Γ at hTyping
   induction hTyping generalizing Γ₁ with
   | var Γ x' T hWf mem _ =>
-    simp only [substTm_fvar, beq_iff_eq]
+    simp only [Tm.subst_fvar, beq_iff_eq]
     split
     · grind [wf_lookup_mid]
     · subst h
       constructor <;> grind
   | lam L Γ T₁ T₂ t _ _ ih =>
-    simp only [substTm_lam]
+    simp only [Tm.subst_lam]
     apply HasType.lam (L ∪ {x} ∪ (Context.dom Γ))
     · assumption
     · intro y hy
@@ -321,7 +320,7 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
       have hy₁ : y ∉ L := by aesop
       have hy₂ : y ≠ x := by aesop
       have hy₃ : y ∉ Context.dom (Γ₁ ++ Γ₂) := by aesop
-      rw [openTm_substTm_comm_of_neq hy₂ hLCu]
+      rw [Tm.open_subst_comm_of_neq hy₂ hLCu]
       have : ((y, .tm T₁) :: Γ₁ ++ Γ₂) ⊢ u ∶ U := by
         have := typing_weakening (Γ₁ := []) (Γ₂ := Γ₁ ++ Γ₂) (x := y) (b := .tm T₁) hSubstTyping
         simp only [List.nil_append] at this
@@ -334,7 +333,7 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
       exact @ih y hy₁ ((y, .tm T₁) :: Γ₁) this (by aesop)
   | app Γ t₁ t₂ T₁ T₂ _ _ ih₁ ih₂ =>
     subst h
-    simp only [substTm_app]
+    simp only [Tm.subst_app]
     constructor
     · apply ih₁
       · assumption
@@ -343,13 +342,13 @@ theorem typing_subst_tm {Γ₁ Γ₂ : Context} {t u : Tm} {T U : Ty} {x : Name}
       · assumption
       · rfl
   | tLam L Γ t T _ ih =>
-    simp only [substTm_tLam]
+    simp only [Tm.subst_tLam]
     apply HasType.tLam (L ∪ Context.dom Γ)
     intro Y hY
     have hLCu : LcTm u := typing_regularity_tm hSubstTyping
     have hY₁ : Y ∉ L := by aesop
     have hY₂ : Y ∉ Context.dom (Γ₁ ++ Γ₂) := by aesop
-    rw [←openTmTy_substTm_comm hLCu]
+    rw [←Tm.openTy_subst_comm hLCu]
     rw [←List.cons_append]
     apply ih
     · assumption

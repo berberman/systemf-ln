@@ -259,6 +259,7 @@ structure EnvRel (Γ : Context) (ρ : SemEnv) (δ₁ δ₂ : Name → Ty) (γ₁
   γ₁_lc : ∀ x, LcTm (γ₁ x)
   γ₂_lc : ∀ x, LcTm (γ₂ x)
 
+set_option linter.flexible false in
 @[simp]
 theorem envRel_empty :
     EnvRel [] SemEnv.empty
@@ -311,7 +312,7 @@ lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmR
     ValRel (T⟪k, $TX⟫) { ρ with free := Function.update ρ.free X R } := by
   induction T generalizing ρ k with
   | bvar idx =>
-    simp only [ValRel, openTy_bvar, beq_iff_eq]
+    simp only [ValRel, Ty.open_bvar, beq_iff_eq]
     simp [Ty.LcAt] at hLcT
     rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
     · have : idx ≠ k := by aesop
@@ -324,7 +325,7 @@ lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmR
       simp [this]
     · omega
   | fvar name =>
-    simp only [Ty.fv, Finset.mem_singleton, openTy_fvar] at *
+    simp only [Ty.fv, Finset.mem_singleton, Ty.open_fvar] at *
     have : name ≠ X := by aesop
     simp [ValRel, Function.update, this]
   | arr T₁ T₂ T₁_ih T₂_ih =>
@@ -333,7 +334,7 @@ lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmR
     simp at hX
     specialize T₁_ih (by aesop) hk hLcT₁
     specialize T₂_ih (by aesop) hk hLcT₂
-    simp only [ValRel, openTy_arr]
+    simp only [ValRel, Ty.open_arr]
     funext v₁ v₂
     congr
     rw [T₁_ih]
@@ -342,7 +343,7 @@ lemma valRel_openTy_comm_at {T : Ty} {k : ℕ} {X : Name} {ρ : SemEnv} {R : TmR
   | all T ih =>
     simp only [Ty.LcAt] at hLcT
     simp only [Ty.fv] at hX
-    simp only [ValRel, openTy_all]
+    simp only [ValRel, Ty.open_all]
     funext v₁ v₂
     have h_body : ∀ R_arg,
         ExpRel T { bound := R_arg :: ρ.bound.insertIdx k R, free := ρ.free } =
@@ -427,7 +428,7 @@ lemma valRel_openTy_bound_at {T T_arg : Ty} {k : ℕ} {ρ : SemEnv}
   induction T generalizing ρ k with
   | bvar idx =>
     simp [Ty.LcAt] at hLcT
-    simp only [ValRel, openTy_bvar, beq_iff_eq]
+    simp only [ValRel, Ty.open_bvar, beq_iff_eq]
     rcases Nat.lt_trichotomy idx k with (hlt | heq | hgt)
     · have : idx ≠ k := by grind
       simp only [this, ↓reduceIte]
@@ -441,7 +442,7 @@ lemma valRel_openTy_bound_at {T T_arg : Ty} {k : ℕ} {ρ : SemEnv}
     · grind
   | fvar name => simp [ValRel]
   | arr T₁ T₂ T₁_ih T₂_ih =>
-    simp only [ValRel, openTy_arr]
+    simp only [ValRel, Ty.open_arr]
     funext v₁ v₂
     congr
     simp only [Ty.LcAt] at hLcT
@@ -450,7 +451,7 @@ lemma valRel_openTy_bound_at {T T_arg : Ty} {k : ℕ} {ρ : SemEnv}
     have := T₂_ih hk hLcT₂
     rw [expRel_eq_of_valRel_eq this]
   | all T ih =>
-    simp only [ValRel, openTy_all]
+    simp only [ValRel, Ty.open_all]
     funext v₁ v₂
     congr
     simp only [Ty.LcAt] at hLcT
@@ -496,7 +497,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
         · assumption
         · exact hEnv.δ₁_lc
       · intro x hX
-        rw [psubst_openTm_comm (by aesop) hEnv.γ₁_lc]
+        rw [Tm.psubst_open_comm (by aesop) hEnv.γ₁_lc]
         apply psubst_lcTm
         · have := h x (by aesop) |> typing_regularity_tm
           exact this
@@ -513,7 +514,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
         · assumption
         · exact hEnv.δ₂_lc
       · intro x hX
-        rw [psubst_openTm_comm (by aesop) hEnv.γ₂_lc]
+        rw [Tm.psubst_open_comm (by aesop) hEnv.γ₂_lc]
         apply psubst_lcTm
         · have := h x (by aesop) |> typing_regularity_tm
           exact this
@@ -561,7 +562,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
           · simp only [ne_eq, hyx, not_false_eq_true, Function.update_of_ne, γ₂']
             exact hEnv.γ₂_lc y
       have := ih x (by aesop) hValid hEnv'
-      rw [← psubst_openTm_comm', ← psubst_openTm_comm'] at this
+      rw [← Tm.psubst_open_comm_update, ← Tm.psubst_open_comm_update] at this
       · assumption
       · aesop
       · exact hEnv.γ₂_lc
@@ -577,7 +578,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     have hLc_v₁ : LcTm (Λ' Tm.psubst γ₁ δ₁ t) := by
       apply_cofinite
       intro X hX
-      rw [psubst_openTmTy_comm (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc]
+      rw [Tm.psubst_openTy_comm (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc]
       apply psubst_lcTm
       · have := h X (by aesop) |> typing_regularity_tm
         exact this
@@ -591,7 +592,7 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     have hLc_v₂ : LcTm (Λ' Tm.psubst γ₂ δ₂ t) := by
       apply_cofinite
       intro X hX
-      rw [psubst_openTmTy_comm (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc]
+      rw [Tm.psubst_openTy_comm (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc]
       apply psubst_lcTm
       · have := h X (by aesop) |> typing_regularity_tm
         exact this
@@ -665,12 +666,12 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
       · apply SmallStep.tAppTLam <;> assumption
       have lcAt_t : T.LcAt 1 := by
         have := h X (by aesop) |> typing_regularity_ty
-        have := lcAt_zero_of_lcTy this
-        have := lcAtTy_of_openTy this
+        have := Ty.lcAt_zero_of_lc this
+        have := Ty.lcAt_of_open this
         simp [this]
       rw [←expRel_openTy_comm (by aesop) lcAt_t] at this
-      rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc] at this
-      rw [←psubst_openTmTy_comm' (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc] at this
+      rw [←Tm.psubst_openTy_comm_update (by aesop) hEnv.γ₁_lc hEnv.δ₁_lc] at this
+      rw [←Tm.psubst_openTy_comm_update (by aesop) hEnv.γ₂_lc hEnv.δ₂_lc] at this
       assumption
   | tApp Γ t T₁ T₂ h _ ih =>
     have hExp_t := ih hValid hEnv
@@ -685,12 +686,12 @@ theorem fundamental {Γ t T} (hTyp : Γ ⊢ t ∶ T)
     have hApp := expRel_tApp (T_arg := T₂) hValid hLc_U₁ hLc_U₂ hExp_t
     rw [expRel_openTy_bound_comm] at hApp
     · exact hApp
-    · exact lcAt_zero_of_lcTy (by assumption)
+    · exact Ty.lcAt_zero_of_lc (by assumption)
     · have := typing_regularity_ty h
       cases this with
       | all L T h =>
         pick_fresh X
-        grind [lcAt_zero_of_lcTy, lcAtTy_of_openTy]
+        grind [Ty.lcAt_zero_of_lc, Ty.lcAt_of_open]
 
 def SingletonRel (t : Tm) : TmRel :=
   fun t₁ t₂ => t₁ = t ∧ t₂ = t ∧ LcTm t ∧ Value t

@@ -28,7 +28,7 @@ theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
         pick_fresh x
         have hx₁ : x ∉ L := by grind
         have hx₂ : x ∉ t.fv := by grind
-        rw [←substTm_openTm_var hx₂]
+        rw [←Tm.subst_open_var hx₂]
         have := hBody x hx₁
         have := typing_subst_tm (Γ₁ := []) (Γ₂ := Γ) this (by aesop)
         simp only [List.nil_append] at this
@@ -43,8 +43,8 @@ theorem preservation {Γ : Context} {t t' : Tm} {T : Ty}
         have hX₂ : X ∉ T₁.fv := by grind
         have hX₃ : X ∉ t.fvTy := by grind
         have hX₄ : X ∉ Γ.fv := by grind
-        rw [←substTy_openTy_var hX₂]
-        rw [←substTmTy_openTmTy_var hX₃]
+        rw [←Ty.subst_open_var hX₂]
+        rw [←Tm.substTy_openTy_var hX₃]
         have := hBody X hX₁
         have := typing_subst_ty (Γ₁ := []) this (by assumption)
         rw [substCtx_fresh hX₄] at this
